@@ -8,9 +8,16 @@ CONFIG_PATH = REPO_ROOT / "config" / "world.json"
 CONTENT_DIR = REPO_ROOT / "content" / "entities"
 
 
+def build_default_engine() -> SimulationEngine:
+    """Build the engine from the repo's default config/content. Shared by the
+    CLI demo below and the graphics frontend (src/frontend/) so both start
+    from the same world."""
+    return SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR))
+
+
 def main():
     print("Initializing AI World Simulator...")
-    engine = SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR))
+    engine = build_default_engine()
 
     player = next(e for e in engine.world.entities.values() if e.name == "Player1")
     birk = next(e for e in engine.world.entities.values() if e.name == "Birk")

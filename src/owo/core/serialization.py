@@ -32,3 +32,22 @@ def entity_from_dict(data: dict, world: World) -> Entity:
         cls = get_component_class(component_data["type"])
         entity.add_component(cls(**component_data.get("params", {})))
     return entity
+
+
+def world_to_dict(world: World) -> dict:
+    return {
+        "current_time": world.current_time,
+        "day_count": world.day_count,
+        "current_season": world.current_season,
+        "entities": [entity_to_dict(entity) for entity in world.entities.values()],
+    }
+
+
+def world_from_dict(data: dict) -> World:
+    world = World()
+    world.current_time = data.get("current_time", 0.0)
+    world.day_count = data.get("day_count", 0)
+    world.current_season = data.get("current_season")
+    for entity_data in data.get("entities", []):
+        entity_from_dict(entity_data, world)
+    return world
