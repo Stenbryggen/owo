@@ -11,6 +11,7 @@ from src.owo.core.movement import speed_multiplier
 DEFAULT_HOURS_PER_SECOND = 0.5  # 1 real second = 0.5 in-game hours -> a full day takes 48s
 PLAYER_SPEED = 260.0  # world units per second
 SAVE_PATH = REPO_ROOT / "src" / "data" / "saves" / "slot1.json"
+FILL_COOLDOWN = 0.2  # seconds between water tiles filled while holding F
 
 
 def _movement_input():
@@ -43,9 +44,14 @@ def run():
         "leveled_up",
         lambda p: print(f"Level up! {p['entity']} is now level {p['level']} in {p['skill']}"),
     )
+    engine.events.subscribe(
+        "terrain_filled",
+        lambda p: print(f"Filled water tile ({p['col']}, {p['row']}) with dirt"),
+    )
 
     paused = False
     time_scale = DEFAULT_HOURS_PER_SECOND
+    fill_timer = 0.0
 
     running = True
     while running:
@@ -85,10 +91,17 @@ def run():
         if not paused:
             engine.update(dt_seconds * time_scale)
 
-            if player is not None and pygame.key.get_pressed()[pygame.K_e]:
+            keys = pygame.key.get_pressed()
+
+            if player is not None and keys[pygame.K_e]:
                 quest_entity = renderer.find_interactable_quest(engine.world, player_pos)
                 if quest_entity is not None:
                     engine.perform_work(player.name, quest_entity.name, dt_seconds * time_scale)
+
+            fill_timer -= dt_seconds
+            if player_pos is not None and keys[pygame.K_f] and fill_timer <= 0:
+                if engine.fill_terrain_tile(player_pos.x, player_pos.y):
+                    fill_timer = FILL_COOLDOWN
 
         renderer.draw_world(screen, font, hud_font, engine, paused=paused, time_scale=time_scale)
         pygame.display.flip()

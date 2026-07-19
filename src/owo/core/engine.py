@@ -8,6 +8,7 @@ from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
 from src.owo.core.serialization import entity_from_dict
 from src.owo.core.systems import SystemManager
+from src.owo.core.terrain import Terrain, carve_lake_with_island, world_to_tile
 from src.owo.core.validation import validate_entity_dict
 from src.owo.core.work import perform_work
 
@@ -21,6 +22,7 @@ class SimulationEngine:
 
         self.world = World()
         self.world.current_season = self.config["world"]["seasons"][0]
+        self._setup_terrain()
 
         self.events = EventBus()
         self.ai_provider = get_provider(self.config)
@@ -31,6 +33,29 @@ class SimulationEngine:
         self.system_manager = SystemManager(system_instances, self.world, self.events, self.ai_provider)
 
         self._load_content(Path(content_dir))
+
+    def _setup_terrain(self) -> None:
+        terrain_config = self.config.get("terrain", {})
+        self.world.terrain = Terrain(
+            terrain_config.get("width_tiles", 30), terrain_config.get("height_tiles", 20)
+        )
+        carve_lake_with_island(
+            self.world.terrain,
+            terrain_config.get("lake_col", 3),
+            terrain_config.get("lake_row", 13),
+            terrain_config.get("lake_radius_tiles", 3),
+            terrain_config.get("lake_island_radius_tiles", 1),
+        )
+
+    def fill_terrain_tile(self, x: float, y: float) -> bool:
+        """Permanently fills a water tile at world position (x, y) with
+        dirt. Returns False if that tile wasn't water."""
+        col, row = world_to_tile(x, y)
+        if self.world.terrain.get(col, row) != "water":
+            return False
+        self.world.terrain.set(col, row, "dirt")
+        self.events.publish("terrain_filled", {"col": col, "row": row})
+        return True
 
     def _load_config(self, path: str) -> dict:
         if not os.path.exists(path):

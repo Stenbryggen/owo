@@ -32,6 +32,9 @@ class World:
         self.current_time: float = 0.0
         self.day_count: int = 0
         self.current_season: str = None
+        # Also not an ECS component - a sparse tile grid, set up by the
+        # engine from config. See core/terrain.py.
+        self.terrain = None
 
     def create_entity(self, name: str = None) -> Entity:
         entity = Entity(name)

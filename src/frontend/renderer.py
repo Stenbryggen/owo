@@ -11,6 +11,7 @@ from src.owo.components.skills import Skills
 from src.owo.components.sleep import Sleep
 from src.owo.components.thermal import Thermal
 from src.owo.components.wallet import Wallet
+from src.owo.core.terrain import TILE_SIZE, world_to_tile
 from src.owo.core.work import quest_progress
 
 SCREEN_SIZE = (1600, 900)
@@ -37,8 +38,10 @@ SEASON_TINT = {
 }
 
 GROUND_COLOR = (74, 130, 62)
-GROUND_PATCH_COLOR = (64, 115, 54)
-GROUND_PATCHES = [(300, 900), (1200, 300), (2000, 1200), (700, 1400), (1800, 700)]
+TILE_COLORS = {
+    "water": (58, 122, 190),
+    "dirt": (122, 92, 56),
+}
 
 
 def is_night(world, config) -> bool:
@@ -60,6 +63,32 @@ def sky_color(world, config):
     base = NIGHT_BG if is_night(world, config) else DAY_BG
     tint = SEASON_TINT.get(world.current_season, base)
     return _blend(base, tint)
+
+
+def _draw_terrain(surface, world, config, camera):
+    terrain = world.terrain
+    grass_color = ground_tint(world, config)
+    night = is_night(world, config)
+
+    if terrain is None:
+        pygame.draw.rect(surface, grass_color, (-camera[0], -camera[1], *WORLD_SIZE))
+        return
+
+    tile_colors = {"grass": grass_color}
+    for tile_type, color in TILE_COLORS.items():
+        tile_colors[tile_type] = _blend(color, (10, 10, 30), amount=0.35) if night else color
+
+    col_start = max(0, int(camera[0] // TILE_SIZE))
+    col_end = min(terrain.width, int((camera[0] + SCREEN_SIZE[0]) // TILE_SIZE) + 1)
+    row_start = max(0, int(camera[1] // TILE_SIZE))
+    row_end = min(terrain.height, int((camera[1] + SCREEN_SIZE[1]) // TILE_SIZE) + 1)
+
+    for col in range(col_start, col_end):
+        for row in range(row_start, row_end):
+            tile_type = terrain.get(col, row)
+            color = tile_colors.get(tile_type, (150, 150, 150))
+            rect = (col * TILE_SIZE - camera[0], row * TILE_SIZE - camera[1], TILE_SIZE, TILE_SIZE)
+            pygame.draw.rect(surface, color, rect)
 
 
 def compute_camera(player_pos, screen_size, world_size):
@@ -224,7 +253,8 @@ def _draw_hud(surface, hud_font, world, config, paused: bool, time_scale: float)
         f"Season: {world.current_season}  (Day {world.day_count})  {night_label}",
         f"Time: {_format_time(world.current_time)}    Speed: {time_scale:g}x"
         + ("  [PAUSED]" if paused else ""),
-        "WASD/arrows=move  E=work quest  SPACE=pause  +/-=speed  F5=save F9=load  ESC=quit",
+        "WASD/arrows=move  E=work quest  F=fill water  SPACE=pause  +/-=speed  "
+        "F5=save F9=load  ESC=quit",
     ]
     for i, text in enumerate(lines):
         label = hud_font.render(text, True, (15, 15, 15))
@@ -282,6 +312,25 @@ def _draw_interact_hint(surface, hud_font, quest_entity):
     surface.blit(label, (x, y))
 
 
+def _draw_fill_hint(surface, hud_font, world, player_pos):
+    if player_pos is None or world.terrain is None:
+        return
+
+    col, row = world_to_tile(player_pos.x, player_pos.y)
+    if world.terrain.get(col, row) != "water":
+        return
+
+    label = hud_font.render("Press F to fill this water tile with dirt", True, (255, 255, 255))
+    x = surface.get_width() // 2 - label.get_width() // 2
+    y = surface.get_height() - 120
+
+    bg = pygame.Surface((label.get_width() + 24, label.get_height() + 14))
+    bg.set_alpha(180)
+    bg.fill((20, 20, 20))
+    surface.blit(bg, (x - 12, y - 7))
+    surface.blit(label, (x, y))
+
+
 def draw_world(surface, font, hud_font, engine, paused: bool = False, time_scale: float = 1.0):
     world, config = engine.world, engine.config
 
@@ -290,12 +339,7 @@ def draw_world(surface, font, hud_font, engine, paused: bool = False, time_scale
     camera = compute_camera(player_pos, SCREEN_SIZE, WORLD_SIZE) if player_pos else (0, 0)
 
     surface.fill(sky_color(world, config))
-    patch_color = ground_tint(world, config)
-    pygame.draw.rect(surface, patch_color, (-camera[0], -camera[1], *WORLD_SIZE))
-    for px, py in GROUND_PATCHES:
-        pygame.draw.circle(
-            surface, GROUND_PATCH_COLOR, (int(px - camera[0]), int(py - camera[1])), 90
-        )
+    _draw_terrain(surface, world, config, camera)
 
     for entity in world.entities.values():
         pos = entity.get_component(Position)
@@ -316,3 +360,4 @@ def draw_world(surface, font, hud_font, engine, paused: bool = False, time_scale
     _draw_hud(surface, hud_font, world, config, paused, time_scale)
     _draw_player_panel(surface, font, world)
     _draw_interact_hint(surface, hud_font, find_interactable_quest(world, player_pos))
+    _draw_fill_hint(surface, hud_font, world, player_pos)

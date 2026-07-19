@@ -40,6 +40,14 @@
   "quests": {
     "base_effort_per_hour": 5.0
   },
+  "terrain": {
+    "width_tiles": 30,
+    "height_tiles": 20,
+    "lake_col": 3,
+    "lake_row": 13,
+    "lake_radius_tiles": 3,
+    "lake_island_radius_tiles": 1
+  },
   "systems": {
     "order": ["time_season", "energy_drain", "sleep_recovery", "sickness", "npc_autonomy"]
   },
