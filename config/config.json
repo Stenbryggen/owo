@@ -1,0 +1,38 @@
+{
+  "world": {
+    "time_speed": 1.0,
+    "seasons": ["Spring", "Summer", "Autumn", "Winter"],
+    "day_length_hours": 24,
+    "seasonal_factors": {
+      "Winter": {
+        "energy_drain_multiplier": 1.5,
+        "night_length_hours": 16,
+        "sickness_risk_base": 0.1
+      },
+      "Summer": {
+        "energy_drain_multiplier": 1.0,
+        "night_length_hours": 8,
+        "sickness_risk_base": 0.02
+      },
+      "Spring": {
+        "energy_drain_multiplier": 1.1,
+        "night_length_hours": 12,
+        "sickness_risk_base": 0.05
+      },
+      "Autumn": {
+        "energy_drain_multiplier": 1.2,
+        "night_length_hours": 12,
+        "sickness_risk_base": 0.07
+      }
+    }
+  },
+  "player_base_stats": {
+    "max_energy": 100,
+    "max_health": 100,
+    "recovery_rate_base": 5.0,
+    "motion_speed_base": 1.0
+  },
+  "synergy": {
+    "base_bonus": 1.2
+  }
+}
