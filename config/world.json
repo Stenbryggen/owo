@@ -33,7 +33,12 @@
     "motion_speed_base": 1.0
   },
   "synergy": {
-    "base_bonus": 1.2
+    "base_bonus": 1.2,
+    "master_level_gap": 3,
+    "apprentice_xp_bonus": 1.5
+  },
+  "quests": {
+    "base_effort_per_hour": 5.0
   },
   "systems": {
     "order": ["time_season", "energy_drain", "sleep_recovery", "sickness"]

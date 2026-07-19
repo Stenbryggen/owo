@@ -1,11 +1,17 @@
+import math
+
 import pygame
 
 from src.owo.components.energy import Energy
 from src.owo.components.health import Health
 from src.owo.components.position import Position
+from src.owo.components.quest import Quest
 from src.owo.components.renderable import Renderable
+from src.owo.components.skills import Skills
 from src.owo.components.sleep import Sleep
 from src.owo.components.thermal import Thermal
+from src.owo.components.wallet import Wallet
+from src.owo.core.work import quest_progress
 
 SCREEN_SIZE = (1600, 900)
 WORLD_SIZE = (2400, 1600)
@@ -13,6 +19,13 @@ WORLD_SIZE = (2400, 1600)
 ENTITY_RADIUS = 34
 BAR_WIDTH = 90
 BAR_HEIGHT = 14
+
+INTERACT_RADIUS = 100
+QUEST_STATUS_COLOR = {
+    "open": (230, 195, 60),
+    "in_progress": (80, 140, 220),
+    "completed": (90, 200, 90),
+}
 
 DAY_BG = (135, 196, 235)
 NIGHT_BG = (18, 24, 48)
@@ -139,12 +152,54 @@ def _draw_generic_prop(surface, font, x, y, entity):
     surface.blit(label, label.get_rect(center=(x, y - 34)))
 
 
+def _draw_quest_marker(surface, font, x, y, entity):
+    quest = entity.get_component(Quest)
+    color = QUEST_STATUS_COLOR.get(quest.status if quest else "open", (200, 200, 200))
+
+    pygame.draw.rect(surface, (140, 100, 60), (x - 4, y - 4, 8, 40))
+    banner = (x - 34, y - 46, 68, 32)
+    pygame.draw.rect(surface, color, banner)
+    pygame.draw.rect(surface, (40, 40, 40), banner, width=2)
+    mark = font.render("$" if quest and quest.reward_gold else "XP", True, (30, 30, 30))
+    surface.blit(mark, mark.get_rect(center=(x, y - 30)))
+
+    title = quest.title if quest else entity.name
+    label = font.render(title, True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 78)))
+
+    if quest:
+        ratio = quest_progress(quest) / quest.effort_required if quest.effort_required else 1.0
+        _bar(surface, x - BAR_WIDTH // 2, y + 8, ratio, color)
+
+
 _PROP_DRAWERS = {
     "tree": _draw_tree,
     "rock": _draw_rock,
     "quest_board": _draw_quest_board,
     "chest": _draw_chest,
+    "quest_marker": _draw_quest_marker,
 }
+
+
+def find_interactable_quest(world, player_pos):
+    """Nearest open/in-progress quest entity within INTERACT_RADIUS of
+    player_pos, or None. Shared by the frontend's interact prompt and its
+    "E to work" input handling so both agree on what's reachable."""
+    if player_pos is None:
+        return None
+
+    best, best_dist = None, INTERACT_RADIUS
+    for entity in world.entities.values():
+        quest = entity.get_component(Quest)
+        if quest is None or quest.status == "completed":
+            continue
+        pos = entity.get_component(Position)
+        if pos is None:
+            continue
+        dist = math.hypot(pos.x - player_pos.x, pos.y - player_pos.y)
+        if dist <= best_dist:
+            best, best_dist = entity, dist
+    return best
 
 
 def _format_time(hours: float) -> str:
@@ -159,7 +214,7 @@ def _draw_hud(surface, hud_font, world, config, paused: bool, time_scale: float)
         f"Season: {world.current_season}  (Day {world.day_count})  {night_label}",
         f"Time: {_format_time(world.current_time)}    Speed: {time_scale:g}x"
         + ("  [PAUSED]" if paused else ""),
-        "WASD/arrows=move  SPACE=pause  +/-=speed  ESC=quit",
+        "WASD/arrows=move  E=work quest  SPACE=pause  +/-=speed  ESC=quit",
     ]
     for i, text in enumerate(lines):
         label = hud_font.render(text, True, (15, 15, 15))
@@ -168,6 +223,53 @@ def _draw_hud(surface, hud_font, world, config, paused: bool, time_scale: float)
         bg.fill((255, 255, 255))
         surface.blit(bg, (16, 12 + i * 38))
         surface.blit(label, (20, 14 + i * 38))
+
+
+def _draw_player_panel(surface, font, world):
+    player = world.get_entity_by_name("Player1")
+    if player is None:
+        return
+
+    wallet = player.get_component(Wallet)
+    skills = player.get_component(Skills)
+
+    lines = [f"Gold: {wallet.gold:.0f}" if wallet else "Gold: -"]
+    if skills and skills.levels:
+        for skill_name, level in sorted(skills.levels.items()):
+            xp_in_level = skills.xp.get(skill_name, 0.0) % 100.0
+            lines.append(f"{skill_name.title()} Lv{level}  ({xp_in_level:.0f}/100 xp)")
+    else:
+        lines.append("No skills yet")
+
+    panel_width = 300
+    panel_height = 16 + len(lines) * 32
+    x0 = surface.get_width() - panel_width - 16
+    y0 = 16
+
+    panel = pygame.Surface((panel_width, panel_height))
+    panel.set_alpha(160)
+    panel.fill((255, 255, 255))
+    surface.blit(panel, (x0, y0))
+
+    for i, text in enumerate(lines):
+        label = font.render(text, True, (15, 15, 15))
+        surface.blit(label, (x0 + 14, y0 + 10 + i * 32))
+
+
+def _draw_interact_hint(surface, hud_font, quest_entity):
+    if quest_entity is None:
+        return
+    quest = quest_entity.get_component(Quest)
+    text = f"Press E to work: {quest.title}"
+    label = hud_font.render(text, True, (255, 255, 255))
+    x = surface.get_width() // 2 - label.get_width() // 2
+    y = surface.get_height() - 70
+
+    bg = pygame.Surface((label.get_width() + 24, label.get_height() + 14))
+    bg.set_alpha(180)
+    bg.fill((20, 20, 20))
+    surface.blit(bg, (x - 12, y - 7))
+    surface.blit(label, (x, y))
 
 
 def draw_world(surface, font, hud_font, engine, paused: bool = False, time_scale: float = 1.0):
@@ -202,3 +304,5 @@ def draw_world(surface, font, hud_font, engine, paused: bool = False, time_scale
             drawer(surface, font, x, y, entity)
 
     _draw_hud(surface, hud_font, world, config, paused, time_scale)
+    _draw_player_panel(surface, font, world)
+    _draw_interact_hint(surface, hud_font, find_interactable_quest(world, player_pos))

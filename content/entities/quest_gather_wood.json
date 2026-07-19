@@ -1,0 +1,17 @@
+{
+  "name": "QuestGatherWood",
+  "components": [
+    {"type": "position", "params": {"x": 500, "y": 420}},
+    {"type": "renderable", "params": {"kind": "quest_marker"}},
+    {
+      "type": "quest",
+      "params": {
+        "title": "Saml 50 traelast (laerling)",
+        "skill": "woodcutting",
+        "effort_required": 30.0,
+        "reward_gold": 0.0,
+        "reward_xp": 120.0
+      }
+    }
+  ]
+}

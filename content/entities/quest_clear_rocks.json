@@ -1,0 +1,17 @@
+{
+  "name": "QuestClearRocks",
+  "components": [
+    {"type": "position", "params": {"x": 1750, "y": 1050}},
+    {"type": "renderable", "params": {"kind": "quest_marker"}},
+    {
+      "type": "quest",
+      "params": {
+        "title": "Ryd sten for handelsmand (betalt)",
+        "skill": "mining",
+        "effort_required": 40.0,
+        "reward_gold": 60.0,
+        "reward_xp": 15.0
+      }
+    }
+  ]
+}

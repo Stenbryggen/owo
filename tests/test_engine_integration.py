@@ -24,6 +24,7 @@ def test_loads_all_content_entities():
         "Player1", "Birk", "Campfire",
         "Tree1", "Tree2", "Tree3", "Tree4",
         "Rock1", "Rock2", "QuestBoard", "Chest",
+        "QuestGatherWood", "QuestClearRocks",
     }
 
 

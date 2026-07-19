@@ -9,6 +9,7 @@ from src.owo.core.events import EventBus
 from src.owo.core.serialization import entity_from_dict
 from src.owo.core.systems import SystemManager
 from src.owo.core.validation import validate_entity_dict
+from src.owo.core.work import perform_work
 
 
 class SimulationEngine:
@@ -46,6 +47,9 @@ class SimulationEngine:
 
     def update(self, delta_time_hours: float) -> None:
         self.system_manager.update(self.world, self.config, delta_time_hours)
+
+    def perform_work(self, actor_name: str, quest_name: str, delta_time_hours: float) -> None:
+        perform_work(self.world, self.config, self.events, actor_name, quest_name, delta_time_hours)
 
     @property
     def current_time(self) -> float:

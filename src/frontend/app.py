@@ -32,6 +32,15 @@ def run():
     player = engine.world.get_entity_by_name("Player1")
     player_pos = player.get_component(Position) if player else None
 
+    engine.events.subscribe(
+        "quest_completed",
+        lambda p: print(f"Quest completed: {p['quest']} (by {', '.join(p['contributors'])})"),
+    )
+    engine.events.subscribe(
+        "leveled_up",
+        lambda p: print(f"Level up! {p['entity']} is now level {p['level']} in {p['skill']}"),
+    )
+
     paused = False
     time_scale = DEFAULT_HOURS_PER_SECOND
 
@@ -60,6 +69,11 @@ def run():
 
         if not paused:
             engine.update(dt_seconds * time_scale)
+
+            if player is not None and pygame.key.get_pressed()[pygame.K_e]:
+                quest_entity = renderer.find_interactable_quest(engine.world, player_pos)
+                if quest_entity is not None:
+                    engine.perform_work(player.name, quest_entity.name, dt_seconds * time_scale)
 
         renderer.draw_world(screen, font, hud_font, engine, paused=paused, time_scale=time_scale)
         pygame.display.flip()
