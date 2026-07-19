@@ -41,15 +41,22 @@
     "base_effort_per_hour": 5.0
   },
   "terrain": {
-    "width_tiles": 30,
-    "height_tiles": 20,
     "lake_col": 3,
     "lake_row": 13,
     "lake_radius_tiles": 3,
     "lake_island_radius_tiles": 1
   },
+  "worldgen": {
+    "seed": 1337,
+    "chunk_size": 16,
+    "load_radius_chunks": 2,
+    "starting_chunk_radius": 2
+  },
   "systems": {
-    "order": ["time_season", "energy_drain", "sleep_recovery", "sickness", "npc_autonomy"]
+    "order": [
+      "time_season", "energy_drain", "sleep_recovery", "sickness",
+      "npc_autonomy", "tree_growth", "resource_regen"
+    ]
   },
   "ai_provider": "stub",
   "n8n_webhook_url": "http://localhost:5678/webhook/owo-ai"

@@ -28,6 +28,43 @@ def test_npc_gets_a_daily_goal_from_the_ai_provider_on_new_day():
     assert profile.current_goal == "idle"  # StubAIProvider always returns "idle"
 
 
+def test_npc_autonomy_survives_a_world_reset_from(tmp_path):
+    """Regression test: NpcAutonomySystem.setup() captures `world` once at
+    construction time. Reassigning engine.world to a brand new object (as a
+    naive reload would) leaves that captured reference stale forever, so a
+    reloaded world's NPCs would silently stop getting daily goals.
+    World.reset_from() must be used instead, preserving object identity."""
+    from src.owo.core.ecs import World
+
+    engine = SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR))
+    birk = engine.world.get_entity_by_name("Birk")
+
+    # Simulate a "load": build a separate World (as world_from_dict would)
+    # and reset the engine's world in place rather than reassigning it.
+    other = World()
+    other.current_season = engine.world.current_season
+    other.terrain = engine.world.terrain
+    from src.owo.core.serialization import entity_to_dict, entity_from_dict
+    for entity in engine.world.entities.values():
+        entity_from_dict(entity_to_dict(entity), other)
+
+    engine.world.reset_from(other)
+
+    # The entity object identity changed (it's a fresh copy from the
+    # "loaded" world), so re-fetch it - but the system's world reference
+    # must now see it.
+    reloaded_birk = engine.world.get_entity_by_name("Birk")
+    assert reloaded_birk is not birk
+
+    profile = reloaded_birk.get_component(NpcProfile)
+    assert profile.current_goal == ""
+
+    for _ in range(24):
+        engine.update(1.0)
+
+    assert profile.current_goal == "idle"
+
+
 def test_new_day_fires_once_per_day_not_per_tick():
     engine = SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR))
     calls = []

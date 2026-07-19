@@ -7,16 +7,16 @@ from pathlib import Path
 from src.data.save_manager import load_world, save_world
 from src.owo.components.position import Position
 from src.owo.core.engine import SimulationEngine
-from src.owo.core.interaction import find_interactable_quest
+from src.owo.core.interaction import find_interactable_quest, find_interactable_resource
 from src.owo.core.movement import speed_multiplier
 from src.owo.core.players import spawn_player
 from src.owo.core.serialization import world_to_dict
-from src.owo.core.terrain import TILE_SIZE
 from src.server.protocol import read_message, send_message
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = REPO_ROOT / "config" / "world.json"
 CONTENT_DIR = REPO_ROOT / "content" / "entities"
+RECIPES_DIR = REPO_ROOT / "content" / "recipes"
 PLAYER_TEMPLATE = CONTENT_DIR / "player.json"
 DEFAULT_DB_PATH = REPO_ROOT / "src" / "data" / "saves" / "world.db"
 
@@ -24,6 +24,7 @@ TICK_HZ = 15
 HOURS_PER_SECOND = 0.5  # matches the single-player app's default pace
 PLAYER_SPEED = 260.0
 FILL_COOLDOWN = 0.2
+PLANT_COOLDOWN = 0.5
 DEFAULT_AUTOSAVE_INTERVAL_SECONDS = 30.0
 
 
@@ -36,6 +37,8 @@ class ClientSession:
         self.work = False
         self.fill = False
         self.fill_timer = 0.0
+        self.plant = False
+        self.plant_timer = 0.0
 
 
 class GameServer:
@@ -49,10 +52,14 @@ class GameServer:
         self.db_path = db_path
         self.autosave_interval_seconds = autosave_interval_seconds
 
-        self.engine = SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR))
+        self.engine = SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR), str(RECIPES_DIR))
         loaded_world = load_world(self.db_path)
         if loaded_world is not None:
-            self.engine.world = loaded_world
+            # reset_from(), not a reassignment: SystemManager/NpcAutonomySystem
+            # already captured a reference to self.engine.world by now (in
+            # SimulationEngine.__init__), and a reassignment would leave that
+            # reference pointing at a stale, discarded World forever.
+            self.engine.world.reset_from(loaded_world)
             print(f"[server] loaded saved world from {self.db_path}")
 
         self.clients: dict[str, ClientSession] = {}
@@ -69,6 +76,14 @@ class GameServer:
         self.engine.events.subscribe(
             "leveled_up",
             lambda p: print(f"[server] Level up! {p['entity']} is now level {p['level']} in {p['skill']}"),
+        )
+        self.engine.events.subscribe(
+            "resource_removed",
+            lambda p: print(f"[server] {p['resource']} was harvested to nothing"),
+        )
+        self.engine.events.subscribe(
+            "item_crafted",
+            lambda p: print(f"[server] {p['entity']} crafted {p['count']}x {p['item']}"),
         )
 
     def start(self) -> None:
@@ -147,12 +162,16 @@ class GameServer:
                             session.dy = float(msg.get("dy", 0.0))
                             session.work = bool(msg.get("work", False))
                             session.fill = bool(msg.get("fill", False))
+                            session.plant = bool(msg.get("plant", False))
                 elif msg.get("type") == "save":
                     self._save()
                     print(f"[server] saved to {self.db_path} (requested by {name})")
                 elif msg.get("type") == "load":
                     self._load()
                     print(f"[server] loaded from {self.db_path} (requested by {name})")
+                elif msg.get("type") == "craft":
+                    with self._lock:
+                        self.engine.perform_craft(name, msg.get("recipe", ""))
         except (ConnectionResetError, BrokenPipeError, OSError, json.JSONDecodeError):
             pass
         finally:
@@ -167,15 +186,17 @@ class GameServer:
             self._save_locked()
 
     def _load_locked(self) -> None:
-        """Replace the current world with the saved one, if any. Caller
-        must already hold self._lock. Respawns any connected client whose
-        entity isn't in the loaded world (e.g. they joined after the save
-        was taken) so nobody silently disappears."""
+        """Reset the current world to the saved one, if any (see
+        World.reset_from - this preserves object identity so systems that
+        captured a `world` reference at setup(), like NpcAutonomySystem,
+        don't go stale). Caller must already hold self._lock. Respawns any
+        connected client whose entity isn't in the loaded world (e.g. they
+        joined after the save was taken) so nobody silently disappears."""
         loaded_world = load_world(self.db_path)
         if loaded_world is None:
             return
 
-        self.engine.world = loaded_world
+        self.engine.world.reset_from(loaded_world)
         for name in self.clients:
             if self.engine.world.get_entity_by_name(name) is None:
                 spawn_index = self._next_spawn_index
@@ -208,28 +229,36 @@ class GameServer:
             with self._lock:
                 self.engine.update(dt_hours)
 
-                world_width = self.engine.world.terrain.width * TILE_SIZE
-                world_height = self.engine.world.terrain.height * TILE_SIZE
-
                 for name, session in list(self.clients.items()):
                     entity = self.engine.world.get_entity_by_name(name)
                     pos = entity.get_component(Position) if entity else None
                     if pos is None:
                         continue
 
+                    # World is infinite - no position clamp in any direction.
                     speed = PLAYER_SPEED * speed_multiplier(self.engine.world, pos)
-                    pos.x = max(0, min(world_width, pos.x + session.dx * speed * dt_real))
-                    pos.y = max(0, min(world_height, pos.y + session.dy * speed * dt_real))
+                    pos.x += session.dx * speed * dt_real
+                    pos.y += session.dy * speed * dt_real
+                    self.engine.ensure_chunks_loaded(pos.x, pos.y)
 
                     if session.work:
                         quest = find_interactable_quest(self.engine.world, pos)
                         if quest is not None:
                             self.engine.perform_work(name, quest.name, dt_hours)
+                        else:
+                            resource = find_interactable_resource(self.engine.world, pos)
+                            if resource is not None:
+                                self.engine.perform_harvest(name, resource.name, dt_hours)
 
                     session.fill_timer -= dt_real
                     if session.fill and session.fill_timer <= 0:
                         if self.engine.fill_terrain_tile(pos.x, pos.y):
                             session.fill_timer = FILL_COOLDOWN
+
+                    session.plant_timer -= dt_real
+                    if session.plant and session.plant_timer <= 0:
+                        if self.engine.perform_plant(name):
+                            session.plant_timer = PLANT_COOLDOWN
 
                 snapshot = {"type": "state", "world": world_to_dict(self.engine.world)}
                 recipients = list(self.clients.items())

@@ -1,20 +1,25 @@
 import json
 import os
 from pathlib import Path
+from typing import Optional
 
 from src.owo.core import registry
 from src.owo.core.ai_provider import get_provider
+from src.owo.core.crafting import load_recipes, perform_craft
 from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
+from src.owo.core.harvest import perform_harvest
+from src.owo.core.planting import perform_plant
 from src.owo.core.serialization import entity_from_dict
 from src.owo.core.systems import SystemManager
 from src.owo.core.terrain import Terrain, carve_lake_with_island, world_to_tile
 from src.owo.core.validation import validate_entity_dict
 from src.owo.core.work import perform_work
+from src.owo.core.worldgen import ensure_chunks_loaded
 
 
 class SimulationEngine:
-    def __init__(self, config_path: str, content_dir: str):
+    def __init__(self, config_path: str, content_dir: str, recipes_dir: Optional[str] = None):
         registry.discover_and_import("src.owo.components")
         registry.discover_and_import("src.owo.systems")
 
@@ -33,18 +38,36 @@ class SimulationEngine:
         self.system_manager = SystemManager(system_instances, self.world, self.events, self.ai_provider)
 
         self._load_content(Path(content_dir))
+        self.recipes = load_recipes(recipes_dir) if recipes_dir else {}
 
     def _setup_terrain(self) -> None:
         terrain_config = self.config.get("terrain", {})
-        self.world.terrain = Terrain(
-            terrain_config.get("width_tiles", 30), terrain_config.get("height_tiles", 20)
-        )
+        self.world.terrain = Terrain()
         carve_lake_with_island(
             self.world.terrain,
             terrain_config.get("lake_col", 3),
             terrain_config.get("lake_row", 13),
             terrain_config.get("lake_radius_tiles", 3),
             terrain_config.get("lake_island_radius_tiles", 1),
+        )
+
+        # Mark the hand-placed starting area as already generated, so the
+        # procedural generator never scatters trees/mines on top of the
+        # curated content entities - it only kicks in once players wander
+        # beyond this radius. See core/worldgen.py.
+        worldgen_config = self.config.get("worldgen", {})
+        starting_radius = worldgen_config.get("starting_chunk_radius", 2)
+        for cx in range(-starting_radius, starting_radius + 1):
+            for cy in range(-starting_radius, starting_radius + 1):
+                self.world.loaded_chunks.add((cx, cy))
+
+    def ensure_chunks_loaded(self, x: float, y: float) -> None:
+        worldgen_config = self.config.get("worldgen", {})
+        ensure_chunks_loaded(
+            self.world, x, y,
+            radius_chunks=worldgen_config.get("load_radius_chunks", 2),
+            base_seed=worldgen_config.get("seed", 0),
+            chunk_size=worldgen_config.get("chunk_size", 16),
         )
 
     def fill_terrain_tile(self, x: float, y: float) -> bool:
@@ -75,6 +98,15 @@ class SimulationEngine:
 
     def perform_work(self, actor_name: str, quest_name: str, delta_time_hours: float) -> None:
         perform_work(self.world, self.config, self.events, actor_name, quest_name, delta_time_hours)
+
+    def perform_harvest(self, actor_name: str, resource_name: str, delta_time_hours: float) -> None:
+        perform_harvest(self.world, self.config, self.events, actor_name, resource_name, delta_time_hours)
+
+    def perform_plant(self, actor_name: str) -> bool:
+        return perform_plant(self.world, self.events, actor_name)
+
+    def perform_craft(self, actor_name: str, recipe_name: str) -> bool:
+        return perform_craft(self.world, self.events, self.recipes, actor_name, recipe_name)
 
     @property
     def current_time(self) -> float:

@@ -6,14 +6,15 @@ DEFAULT_TILE = "grass"
 
 
 class Terrain:
-    """A sparse tile grid: only tiles that differ from `default` are stored,
-    so most of the map costs nothing. This is the doc's "world remembers
-    permanent geometric changes" - a filled-in lake tile stays filled until
-    someone changes it back, including across save/load."""
+    """A sparse, unbounded tile grid: only tiles that differ from `default`
+    are stored, and get() returns `default` for any (col, row) whatsoever -
+    including ones nobody has visited yet. That's what makes the world
+    infinite for free: there is no width/height to run out of. This is
+    also the doc's "world remembers permanent geometric changes" - a
+    filled-in lake tile stays filled until someone changes it back,
+    including across save/load."""
 
-    def __init__(self, width_tiles: int, height_tiles: int, default: str = DEFAULT_TILE):
-        self.width = width_tiles
-        self.height = height_tiles
+    def __init__(self, default: str = DEFAULT_TILE):
         self.default = default
         self.tiles: Dict[Tuple[int, int], str] = {}
 

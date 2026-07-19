@@ -1,0 +1,71 @@
+import hashlib
+import random
+from typing import Tuple
+
+from src.owo.core.resource_spawning import spawn_mine, spawn_tree
+from src.owo.core.terrain import TILE_SIZE, carve_lake_with_island, world_to_tile
+
+CHUNK_SIZE = 16  # tiles per chunk side
+
+LAKE_CHANCE = 0.12
+TREE_COUNT_RANGE = (1, 4)
+MINE_CHANCE = 0.3
+
+
+def chunk_of(col: int, row: int, chunk_size: int = CHUNK_SIZE) -> Tuple[int, int]:
+    return col // chunk_size, row // chunk_size
+
+
+def _chunk_seed(base_seed: int, chunk_x: int, chunk_y: int) -> int:
+    """Deterministic per-chunk seed: the same chunk always generates the
+    same content, independent of generation order or which player
+    triggered it - two players approaching the same unexplored area from
+    different directions still see the same world."""
+    digest = hashlib.sha256(f"{base_seed}:{chunk_x}:{chunk_y}".encode()).digest()
+    return int.from_bytes(digest[:8], "big")
+
+
+def generate_chunk(world, chunk_x: int, chunk_y: int, base_seed: int = 0, chunk_size: int = CHUNK_SIZE) -> None:
+    """Fills terrain and scatters resource entities for one chunk. Callers
+    should check world.loaded_chunks first - calling this twice for the
+    same chunk would scatter resources twice."""
+    rng = random.Random(_chunk_seed(base_seed, chunk_x, chunk_y))
+    origin_col = chunk_x * chunk_size
+    origin_row = chunk_y * chunk_size
+
+    if rng.random() < LAKE_CHANCE:
+        lake_col = origin_col + rng.randint(3, chunk_size - 4)
+        lake_row = origin_row + rng.randint(3, chunk_size - 4)
+        carve_lake_with_island(world.terrain, lake_col, lake_row, rng.randint(2, 3), 1)
+
+    for _ in range(rng.randint(*TREE_COUNT_RANGE)):
+        col = origin_col + rng.randint(0, chunk_size - 1)
+        row = origin_row + rng.randint(0, chunk_size - 1)
+        if world.terrain.get(col, row) != world.terrain.default:
+            continue
+        spawn_tree(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2, mature=True)
+
+    if rng.random() < MINE_CHANCE:
+        col = origin_col + rng.randint(0, chunk_size - 1)
+        row = origin_row + rng.randint(0, chunk_size - 1)
+        if world.terrain.get(col, row) == world.terrain.default:
+            spawn_mine(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
+
+
+def ensure_chunks_loaded(
+    world, player_x: float, player_y: float,
+    radius_chunks: int = 2, base_seed: int = 0, chunk_size: int = CHUNK_SIZE,
+) -> None:
+    """Generates every not-yet-loaded chunk within radius_chunks of the
+    player. Cheap to call every tick for every player - already-loaded
+    chunks are a single set lookup."""
+    center_col, center_row = world_to_tile(player_x, player_y)
+    center_chunk = chunk_of(center_col, center_row, chunk_size)
+
+    for dx in range(-radius_chunks, radius_chunks + 1):
+        for dy in range(-radius_chunks, radius_chunks + 1):
+            chunk = (center_chunk[0] + dx, center_chunk[1] + dy)
+            if chunk in world.loaded_chunks:
+                continue
+            generate_chunk(world, chunk[0], chunk[1], base_seed, chunk_size)
+            world.loaded_chunks.add(chunk)

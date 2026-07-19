@@ -71,7 +71,7 @@ def test_multiple_slots_are_independent(tmp_path):
 def test_terrain_round_trips_through_sqlite(tmp_path):
     world = World()
     world.current_season = "Spring"
-    world.terrain = Terrain(10, 10)
+    world.terrain = Terrain()
     world.terrain.set(3, 4, "water")
     world.terrain.set(3, 4, "dirt")  # a filled-in lake tile
 

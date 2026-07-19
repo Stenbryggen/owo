@@ -1,7 +1,9 @@
 import pygame
 
 from src.owo.components.energy import Energy
+from src.owo.components.harvestable import Harvestable
 from src.owo.components.health import Health
+from src.owo.components.inventory import Inventory
 from src.owo.components.position import Position
 from src.owo.components.quest import Quest
 from src.owo.components.renderable import Renderable
@@ -9,12 +11,11 @@ from src.owo.components.skills import Skills
 from src.owo.components.sleep import Sleep
 from src.owo.components.thermal import Thermal
 from src.owo.components.wallet import Wallet
-from src.owo.core.interaction import find_interactable_quest
+from src.owo.core.interaction import find_interactable_quest, find_interactable_resource
 from src.owo.core.terrain import TILE_SIZE, world_to_tile
 from src.owo.core.work import quest_progress
 
 SCREEN_SIZE = (1600, 900)
-WORLD_SIZE = (2400, 1600)
 
 ENTITY_RADIUS = 34
 BAR_WIDTH = 90
@@ -69,17 +70,19 @@ def _draw_terrain(surface, world, config, camera):
     night = is_night(world, config)
 
     if terrain is None:
-        pygame.draw.rect(surface, grass_color, (-camera[0], -camera[1], *WORLD_SIZE))
+        surface.fill(grass_color)
         return
 
     tile_colors = {"grass": grass_color}
     for tile_type, color in TILE_COLORS.items():
         tile_colors[tile_type] = _blend(color, (10, 10, 30), amount=0.35) if night else color
 
-    col_start = max(0, int(camera[0] // TILE_SIZE))
-    col_end = min(terrain.width, int((camera[0] + SCREEN_SIZE[0]) // TILE_SIZE) + 1)
-    row_start = max(0, int(camera[1] // TILE_SIZE))
-    row_end = min(terrain.height, int((camera[1] + SCREEN_SIZE[1]) // TILE_SIZE) + 1)
+    # World is infinite, so the visible tile range is purely a function of
+    # the camera/screen - there is no map edge to clamp to.
+    col_start = int(camera[0] // TILE_SIZE)
+    col_end = int((camera[0] + SCREEN_SIZE[0]) // TILE_SIZE) + 1
+    row_start = int(camera[1] // TILE_SIZE)
+    row_end = int((camera[1] + SCREEN_SIZE[1]) // TILE_SIZE) + 1
 
     for col in range(col_start, col_end):
         for row in range(row_start, row_end):
@@ -89,12 +92,8 @@ def _draw_terrain(surface, world, config, camera):
             pygame.draw.rect(surface, color, rect)
 
 
-def compute_camera(player_pos, screen_size, world_size):
-    cam_x = player_pos.x - screen_size[0] / 2
-    cam_y = player_pos.y - screen_size[1] / 2
-    cam_x = max(0, min(cam_x, max(0, world_size[0] - screen_size[0])))
-    cam_y = max(0, min(cam_y, max(0, world_size[1] - screen_size[1])))
-    return cam_x, cam_y
+def compute_camera(player_pos, screen_size):
+    return player_pos.x - screen_size[0] / 2, player_pos.y - screen_size[1] / 2
 
 
 def _bar(surface, x, y, ratio, color):
@@ -155,6 +154,34 @@ def _draw_rock(surface, font, x, y, entity):
     pygame.draw.ellipse(surface, (90, 90, 95), (x - 26, y - 16, 52, 32), width=2)
 
 
+def _draw_sapling(surface, font, x, y, entity):
+    pygame.draw.rect(surface, (110, 74, 40), (x - 3, y - 2, 6, 14))
+    pygame.draw.circle(surface, (70, 150, 70), (x, y - 16), 14)
+    pygame.draw.circle(surface, (40, 110, 40), (x, y - 16), 14, width=2)
+
+
+def _draw_mine(surface, font, x, y, entity):
+    pygame.draw.polygon(
+        surface, (110, 100, 90),
+        [(x - 34, y + 16), (x - 18, y - 24), (x + 4, y - 10), (x + 18, y - 28), (x + 34, y + 16)],
+    )
+    pygame.draw.polygon(
+        surface, (60, 50, 45),
+        [(x - 34, y + 16), (x - 18, y - 24), (x + 4, y - 10), (x + 18, y - 28), (x + 34, y + 16)],
+        width=2,
+    )
+    pygame.draw.rect(surface, (20, 20, 20), (x - 10, y - 4, 20, 20))
+    label = font.render(entity.name, True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 42)))
+
+
+def _draw_empty_mine(surface, font, x, y, entity):
+    pygame.draw.ellipse(surface, (70, 60, 55), (x - 24, y - 8, 48, 20))
+    pygame.draw.ellipse(surface, (30, 25, 22), (x - 24, y - 8, 48, 20), width=2)
+    label = font.render(f"{entity.name} (empty)", True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 28)))
+
+
 def _draw_quest_board(surface, font, x, y, entity):
     pygame.draw.rect(surface, (140, 100, 60), (x - 4, y - 4, 8, 34))
     pygame.draw.rect(surface, (170, 130, 85), (x - 26, y - 44, 52, 40))
@@ -210,12 +237,23 @@ def _draw_quest_marker(surface, font, x, y, entity):
 
 _PROP_DRAWERS = {
     "tree": _draw_tree,
+    "sapling": _draw_sapling,
     "rock": _draw_rock,
+    "mine": _draw_mine,
+    "empty_mine": _draw_empty_mine,
     "quest_board": _draw_quest_board,
     "chest": _draw_chest,
     "quest_marker": _draw_quest_marker,
     "cart": _draw_cart,
 }
+
+
+def _draw_harvestable_bar(surface, x, y, entity):
+    harvestable = entity.get_component(Harvestable)
+    if harvestable is None or harvestable.amount >= harvestable.max_amount:
+        return
+    ratio = harvestable.amount / harvestable.max_amount if harvestable.max_amount else 0.0
+    _bar(surface, x - BAR_WIDTH // 2, y + 30, ratio, (150, 110, 60))
 
 
 def _format_time(hours: float) -> str:
@@ -254,6 +292,7 @@ def _draw_player_panel(surface, font, world, player_name):
 
     wallet = player.get_component(Wallet)
     skills = player.get_component(Skills)
+    inventory = player.get_component(Inventory)
 
     lines = [f"Gold: {wallet.gold:.0f}" if wallet else "Gold: -"]
     if skills and skills.levels:
@@ -262,6 +301,14 @@ def _draw_player_panel(surface, font, world, player_name):
             lines.append(f"{skill_name.title()} Lv{level}  ({xp_in_level:.0f}/100 xp)")
     else:
         lines.append("No skills yet")
+
+    if inventory and inventory.items:
+        items_text = ", ".join(
+            f"{name} x{int(count)}" for name, count in sorted(inventory.items.items())
+        )
+        lines.append(f"Inventory: {items_text}")
+    else:
+        lines.append("Inventory: empty")
 
     panel_width = 300
     panel_height = 16 + len(lines) * 32
@@ -313,6 +360,44 @@ def _draw_fill_hint(surface, hud_font, world, player_pos):
     surface.blit(label, (x, y))
 
 
+def _draw_harvest_hint(surface, hud_font, resource_entity):
+    if resource_entity is None:
+        return
+    harvestable = resource_entity.get_component(Harvestable)
+    text = f"Press E to harvest {harvestable.resource_type}: {resource_entity.name}"
+    label = hud_font.render(text, True, (255, 255, 255))
+    x = surface.get_width() // 2 - label.get_width() // 2
+    y = surface.get_height() - 70
+
+    bg = pygame.Surface((label.get_width() + 24, label.get_height() + 14))
+    bg.set_alpha(180)
+    bg.fill((20, 20, 20))
+    surface.blit(bg, (x - 12, y - 7))
+    surface.blit(label, (x, y))
+
+
+def _draw_plant_hint(surface, hud_font, world, player, player_pos):
+    if player is None or player_pos is None:
+        return
+    inventory = player.get_component(Inventory)
+    if inventory is None or inventory.items.get("seed", 0) < 1:
+        return
+    if world.terrain is not None:
+        col, row = world_to_tile(player_pos.x, player_pos.y)
+        if world.terrain.get(col, row) != world.terrain.default:
+            return
+
+    label = hud_font.render("Press P to plant a tree", True, (255, 255, 255))
+    x = surface.get_width() // 2 - label.get_width() // 2
+    y = surface.get_height() - 170
+
+    bg = pygame.Surface((label.get_width() + 24, label.get_height() + 14))
+    bg.set_alpha(180)
+    bg.fill((20, 20, 20))
+    surface.blit(bg, (x - 12, y - 7))
+    surface.blit(label, (x, y))
+
+
 def draw_world(
     surface, font, hud_font, world, config,
     paused: bool = False, time_scale: float = 1.0,
@@ -320,7 +405,7 @@ def draw_world(
 ):
     player = world.get_entity_by_name(player_name)
     player_pos = player.get_component(Position) if player else None
-    camera = compute_camera(player_pos, SCREEN_SIZE, WORLD_SIZE) if player_pos else (0, 0)
+    camera = compute_camera(player_pos, SCREEN_SIZE) if player_pos else (0, 0)
 
     surface.fill(sky_color(world, config))
     _draw_terrain(surface, world, config, camera)
@@ -340,8 +425,15 @@ def draw_world(
             kind = renderable.kind if renderable else "prop"
             drawer = _PROP_DRAWERS.get(kind, _draw_generic_prop)
             drawer(surface, font, x, y, entity)
+            _draw_harvestable_bar(surface, x, y, entity)
 
     _draw_hud(surface, hud_font, world, config, paused, time_scale, controls_hint)
     _draw_player_panel(surface, font, world, player_name)
-    _draw_interact_hint(surface, hud_font, find_interactable_quest(world, player_pos))
+
+    nearby_quest = find_interactable_quest(world, player_pos)
+    if nearby_quest is not None:
+        _draw_interact_hint(surface, hud_font, nearby_quest)
+    else:
+        _draw_harvest_hint(surface, hud_font, find_interactable_resource(world, player_pos))
     _draw_fill_hint(surface, hud_font, world, player_pos)
+    _draw_plant_hint(surface, hud_font, world, player, player_pos)

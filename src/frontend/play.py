@@ -8,7 +8,10 @@ from src.frontend import renderer
 from src.frontend.network_client import NetworkClient
 from src.server.game_server import GameServer
 
-CONTROLS_HINT = "WASD/arrows=move  E=work quest  F=fill water  F5=save F9=load  ESC=quit"
+CONTROLS_HINT = (
+    "WASD/arrows=move  E=work/harvest  F=fill water  P=plant  "
+    "1=craft axe 2=craft pickaxe  F5=save F9=load  ESC=quit"
+)
 
 
 def _movement_input():
@@ -66,10 +69,14 @@ def run(host: str | None, port: int, name: str) -> None:
                     client.send_save()
                 elif event.key == pygame.K_F9:
                     client.send_load()
+                elif event.key == pygame.K_1:
+                    client.send_craft("axe")
+                elif event.key == pygame.K_2:
+                    client.send_craft("pickaxe")
 
         keys = pygame.key.get_pressed()
         dx, dy = _movement_input()
-        client.send_input(dx, dy, keys[pygame.K_e], keys[pygame.K_f])
+        client.send_input(dx, dy, keys[pygame.K_e], keys[pygame.K_f], keys[pygame.K_p])
 
         world = client.get_world()
         if world is not None:

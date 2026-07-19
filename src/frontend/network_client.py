@@ -55,14 +55,17 @@ class NetworkClient:
         with self._lock:
             return self._world
 
-    def send_input(self, dx: float, dy: float, work: bool, fill: bool) -> None:
-        self._send({"type": "input", "dx": dx, "dy": dy, "work": work, "fill": fill})
+    def send_input(self, dx: float, dy: float, work: bool, fill: bool, plant: bool = False) -> None:
+        self._send({"type": "input", "dx": dx, "dy": dy, "work": work, "fill": fill, "plant": plant})
 
     def send_save(self) -> None:
         self._send({"type": "save"})
 
     def send_load(self) -> None:
         self._send({"type": "load"})
+
+    def send_craft(self, recipe_name: str) -> None:
+        self._send({"type": "craft", "recipe": recipe_name})
 
     def _send(self, message: dict) -> None:
         try:

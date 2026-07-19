@@ -1,0 +1,20 @@
+{
+  "name": "Mine1",
+  "components": [
+    {"type": "position", "params": {"x": 700, "y": 500}},
+    {"type": "renderable", "params": {"kind": "mine"}},
+    {
+      "type": "harvestable",
+      "params": {
+        "resource_type": "stone",
+        "amount": 20.0,
+        "max_amount": 20.0,
+        "regen_per_hour": 0.5,
+        "required_tool": "pickaxe",
+        "on_depleted": "regen",
+        "depleted_kind": "empty_mine",
+        "full_kind": "mine"
+      }
+    }
+  ]
+}

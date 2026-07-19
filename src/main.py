@@ -6,13 +6,14 @@ from src.owo.core.engine import SimulationEngine
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO_ROOT / "config" / "world.json"
 CONTENT_DIR = REPO_ROOT / "content" / "entities"
+RECIPES_DIR = REPO_ROOT / "content" / "recipes"
 
 
 def build_default_engine() -> SimulationEngine:
     """Build the engine from the repo's default config/content. Shared by the
     CLI demo below and the graphics frontend (src/frontend/) so both start
     from the same world."""
-    return SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR))
+    return SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR), str(RECIPES_DIR))
 
 
 def main():

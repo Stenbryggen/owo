@@ -7,6 +7,7 @@
     {"type": "sleep", "params": {"is_sleeping": true}},
     {"type": "skills", "params": {}},
     {"type": "wallet", "params": {"gold": 0.0}},
-    {"type": "relationships", "params": {}}
+    {"type": "relationships", "params": {}},
+    {"type": "inventory", "params": {}}
   ]
 }

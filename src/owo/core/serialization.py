@@ -37,15 +37,13 @@ def entity_from_dict(data: dict, world: World) -> Entity:
 
 def terrain_to_dict(terrain: Terrain) -> dict:
     return {
-        "width_tiles": terrain.width,
-        "height_tiles": terrain.height,
         "default": terrain.default,
         "tiles": {f"{col},{row}": tile_type for (col, row), tile_type in terrain.tiles.items()},
     }
 
 
 def terrain_from_dict(data: dict) -> Terrain:
-    terrain = Terrain(data["width_tiles"], data["height_tiles"], data.get("default", "grass"))
+    terrain = Terrain(data.get("default", "grass"))
     for key, tile_type in data.get("tiles", {}).items():
         col, row = (int(part) for part in key.split(","))
         terrain.tiles[(col, row)] = tile_type
@@ -58,6 +56,7 @@ def world_to_dict(world: World) -> dict:
         "day_count": world.day_count,
         "current_season": world.current_season,
         "terrain": terrain_to_dict(world.terrain) if world.terrain else None,
+        "loaded_chunks": [list(chunk) for chunk in world.loaded_chunks],
         "entities": [entity_to_dict(entity) for entity in world.entities.values()],
     }
 
@@ -69,6 +68,7 @@ def world_from_dict(data: dict) -> World:
     world.current_season = data.get("current_season")
     if data.get("terrain"):
         world.terrain = terrain_from_dict(data["terrain"])
+    world.loaded_chunks = {tuple(chunk) for chunk in data.get("loaded_chunks", [])}
     for entity_data in data.get("entities", []):
         entity_from_dict(entity_data, world)
     return world

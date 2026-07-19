@@ -10,18 +10,18 @@ CONTENT_DIR = REPO_ROOT / "content" / "entities"
 
 
 def test_unset_tile_returns_default():
-    terrain = Terrain(10, 10)
+    terrain = Terrain()
     assert terrain.get(5, 5) == "grass"
 
 
 def test_set_and_get_override():
-    terrain = Terrain(10, 10)
+    terrain = Terrain()
     terrain.set(5, 5, "water")
     assert terrain.get(5, 5) == "water"
 
 
 def test_setting_back_to_default_clears_the_override():
-    terrain = Terrain(10, 10)
+    terrain = Terrain()
     terrain.set(5, 5, "water")
     terrain.set(5, 5, "grass")
     assert terrain.get(5, 5) == "grass"
@@ -34,7 +34,7 @@ def test_world_to_tile():
 
 
 def test_carve_lake_with_island_leaves_center_at_default():
-    terrain = Terrain(20, 20)
+    terrain = Terrain()
     carve_lake_with_island(terrain, center_col=10, center_row=10, radius_tiles=3, island_radius_tiles=1)
 
     assert terrain.get(10, 10) == "grass"  # island center

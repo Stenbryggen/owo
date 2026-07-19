@@ -1,7 +1,0 @@
-{
-  "name": "Rock2",
-  "components": [
-    {"type": "position", "params": {"x": 1700, "y": 1100}},
-    {"type": "renderable", "params": {"kind": "rock"}}
-  ]
-}

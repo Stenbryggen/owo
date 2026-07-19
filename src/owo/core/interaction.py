@@ -1,5 +1,6 @@
 import math
 
+from src.owo.components.harvestable import Harvestable
 from src.owo.components.position import Position
 from src.owo.components.quest import Quest
 
@@ -19,6 +20,26 @@ def find_interactable_quest(world, player_pos):
     for entity in world.entities.values():
         quest = entity.get_component(Quest)
         if quest is None or quest.status == "completed":
+            continue
+        pos = entity.get_component(Position)
+        if pos is None:
+            continue
+        dist = math.hypot(pos.x - player_pos.x, pos.y - player_pos.y)
+        if dist <= best_dist:
+            best, best_dist = entity, dist
+    return best
+
+
+def find_interactable_resource(world, player_pos):
+    """Nearest harvestable resource node (tree, mine, ...) within
+    INTERACT_RADIUS that still has something to give, or None."""
+    if player_pos is None:
+        return None
+
+    best, best_dist = None, INTERACT_RADIUS
+    for entity in world.entities.values():
+        harvestable = entity.get_component(Harvestable)
+        if harvestable is None or harvestable.amount <= 0:
             continue
         pos = entity.get_component(Position)
         if pos is None:

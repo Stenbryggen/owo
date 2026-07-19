@@ -1,0 +1,7 @@
+{
+  "name": "axe",
+  "inputs": {"wood": 3, "stone": 1},
+  "output_item": "axe",
+  "output_count": 1,
+  "time_hours": 0.5
+}

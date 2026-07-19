@@ -4,9 +4,10 @@ on purpose - one message per line, both directions.
 
 Client -> Server:
   {"type": "join", "name": "<requested name>"}                  - first message
-  {"type": "input", "dx": -1..1, "dy": -1..1, "work": bool, "fill": bool}
+  {"type": "input", "dx": -1..1, "dy": -1..1, "work": bool, "fill": bool, "plant": bool}
   {"type": "save"}                                               - persist the world now
   {"type": "load"}                                               - replace the world with the last save
+  {"type": "craft", "recipe": "<recipe name>"}                   - craft if materials allow it
 
 Server -> Client:
   {"type": "welcome", "player_name": "<assigned name>", "config": {...}}
