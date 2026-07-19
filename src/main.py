@@ -19,8 +19,8 @@ def main():
     print("Initializing AI World Simulator...")
     engine = build_default_engine()
 
-    player = next(e for e in engine.world.entities.values() if e.name == "Player1")
-    birk = next(e for e in engine.world.entities.values() if e.name == "Birk")
+    player = engine.world.get_entity_by_name("Player1")
+    birk = engine.world.get_entity_by_name("Birk")
 
     print(f"Start: Season={engine.current_season}, Time={engine.current_time:.2f}h")
 

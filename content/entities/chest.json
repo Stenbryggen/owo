@@ -1,0 +1,7 @@
+{
+  "name": "Chest",
+  "components": [
+    {"type": "position", "params": {"x": 1900, "y": 900}},
+    {"type": "renderable", "params": {"kind": "chest"}}
+  ]
+}

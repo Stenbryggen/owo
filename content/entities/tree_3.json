@@ -1,0 +1,7 @@
+{
+  "name": "Tree3",
+  "components": [
+    {"type": "position", "params": {"x": 600, "y": 1300}},
+    {"type": "renderable", "params": {"kind": "tree"}}
+  ]
+}

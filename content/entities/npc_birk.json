@@ -1,6 +1,7 @@
 {
   "name": "Birk",
   "components": [
+    {"type": "position", "params": {"x": 1400, "y": 950}},
     {"type": "energy", "params": {"current": 80.0, "max_energy": 100.0}},
     {"type": "health", "params": {"current": 100.0, "max_health": 100.0}}
   ]

@@ -4,7 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from src.owo.components import energy, health, thermal, sleep  # noqa: F401 - registers components
+from src.owo.components import (  # noqa: F401 - registers components
+    energy,
+    health,
+    position,
+    renderable,
+    sleep,
+    thermal,
+)
 from src.owo.core import registry
 from src.owo.core.validation import ContentValidationError, validate_entity_dict
 

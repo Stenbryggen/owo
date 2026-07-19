@@ -1,0 +1,7 @@
+{
+  "name": "Tree2",
+  "components": [
+    {"type": "position", "params": {"x": 1900, "y": 400}},
+    {"type": "renderable", "params": {"kind": "tree"}}
+  ]
+}

@@ -1,6 +1,7 @@
 {
   "name": "Campfire",
   "components": [
+    {"type": "position", "params": {"x": 1150, "y": 850}},
     {"type": "thermal", "params": {"heat_source": 5.0}}
   ]
 }

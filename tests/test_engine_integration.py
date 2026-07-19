@@ -20,7 +20,11 @@ def get_entity(engine, name):
 def test_loads_all_content_entities():
     engine = build_engine()
     names = {e.name for e in engine.world.entities.values()}
-    assert names == {"Player1", "Birk", "Campfire"}
+    assert names == {
+        "Player1", "Birk", "Campfire",
+        "Tree1", "Tree2", "Tree3", "Tree4",
+        "Rock1", "Rock2", "QuestBoard", "Chest",
+    }
 
 
 def test_energy_drains_over_time_for_non_sleeping_entity():

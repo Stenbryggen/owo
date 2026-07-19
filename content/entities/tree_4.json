@@ -1,0 +1,7 @@
+{
+  "name": "Tree4",
+  "components": [
+    {"type": "position", "params": {"x": 2100, "y": 1250}},
+    {"type": "renderable", "params": {"kind": "tree"}}
+  ]
+}

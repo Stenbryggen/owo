@@ -1,0 +1,7 @@
+{
+  "name": "QuestBoard",
+  "components": [
+    {"type": "position", "params": {"x": 1000, "y": 500}},
+    {"type": "renderable", "params": {"kind": "quest_board"}}
+  ]
+}

@@ -38,6 +38,9 @@ class World:
         self.entities[entity.id] = entity
         return entity
 
+    def get_entity_by_name(self, name: str) -> "Entity | None":
+        return next((e for e in self.entities.values() if e.name == name), None)
+
     def get_entities_with_components(self, *component_types: Type[Component]) -> List[Entity]:
         return [
             e for e in self.entities.values()
