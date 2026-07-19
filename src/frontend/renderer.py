@@ -212,6 +212,68 @@ def _draw_cart(surface, font, x, y, entity):
     surface.blit(label, label.get_rect(center=(x, y - 28)))
 
 
+def _draw_ore_mine(surface, font, x, y, entity):
+    pygame.draw.polygon(
+        surface, (150, 95, 70),
+        [(x - 34, y + 16), (x - 18, y - 24), (x + 4, y - 10), (x + 18, y - 28), (x + 34, y + 16)],
+    )
+    pygame.draw.polygon(
+        surface, (90, 55, 40),
+        [(x - 34, y + 16), (x - 18, y - 24), (x + 4, y - 10), (x + 18, y - 28), (x + 34, y + 16)],
+        width=2,
+    )
+    pygame.draw.rect(surface, (200, 120, 40), (x - 10, y - 4, 20, 20))
+    label = font.render(entity.name, True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 42)))
+
+
+def _draw_bush(surface, font, x, y, entity):
+    pygame.draw.circle(surface, (60, 130, 50), (x - 10, y - 6), 14)
+    pygame.draw.circle(surface, (70, 145, 55), (x + 10, y - 6), 16)
+    pygame.draw.circle(surface, (40, 100, 35), (x, y - 4), 18, width=2)
+
+
+def _draw_empty_bush(surface, font, x, y, entity):
+    pygame.draw.circle(surface, (110, 100, 70), (x, y - 4), 12, width=2)
+
+
+def _draw_workbench(surface, font, x, y, entity):
+    pygame.draw.rect(surface, (150, 110, 65), (x - 28, y - 10, 56, 20))
+    pygame.draw.rect(surface, (90, 65, 35), (x - 28, y - 10, 56, 20), width=2)
+    pygame.draw.rect(surface, (60, 45, 25), (x - 24, y + 10, 6, 16))
+    pygame.draw.rect(surface, (60, 45, 25), (x + 18, y + 10, 6, 16))
+    label = font.render(entity.name, True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 26)))
+
+
+def _draw_tent(surface, font, x, y, entity):
+    pygame.draw.polygon(surface, (190, 170, 120), [(x, y - 34), (x - 30, y + 14), (x + 30, y + 14)])
+    pygame.draw.polygon(surface, (130, 110, 70), [(x, y - 34), (x - 30, y + 14), (x + 30, y + 14)], width=2)
+    pygame.draw.polygon(surface, (110, 90, 55), [(x, y - 34), (x - 8, y + 14), (x + 8, y + 14)])
+    label = font.render(entity.name, True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 46)))
+
+
+def _draw_boat(surface, font, x, y, entity):
+    pygame.draw.polygon(
+        surface, (140, 95, 55),
+        [(x - 36, y), (x - 24, y + 18), (x + 24, y + 18), (x + 36, y), (x - 36, y)],
+    )
+    pygame.draw.rect(surface, (90, 60, 30), (x - 2, y - 30, 4, 30))
+    pygame.draw.polygon(surface, (230, 230, 220), [(x + 2, y - 28), (x + 2, y - 4), (x + 22, y - 4)])
+    label = font.render(entity.name, True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 40)))
+
+
+def _draw_house(surface, font, x, y, entity):
+    pygame.draw.rect(surface, (200, 190, 160), (x - 34, y - 10, 68, 40))
+    pygame.draw.rect(surface, (110, 80, 50), (x - 34, y - 10, 68, 40), width=2)
+    pygame.draw.polygon(surface, (150, 60, 50), [(x - 40, y - 10), (x, y - 44), (x + 40, y - 10)])
+    pygame.draw.rect(surface, (90, 60, 35), (x - 8, y + 8, 16, 22))
+    label = font.render(entity.name, True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 56)))
+
+
 def _draw_generic_prop(surface, font, x, y, entity):
     pygame.draw.rect(surface, (150, 150, 150), (x - 20, y - 20, 40, 40))
     label = font.render(entity.name, True, (15, 15, 15))
@@ -244,10 +306,17 @@ _PROP_DRAWERS = {
     "rock": _draw_rock,
     "mine": _draw_mine,
     "empty_mine": _draw_empty_mine,
+    "ore_mine": _draw_ore_mine,
+    "bush": _draw_bush,
+    "empty_bush": _draw_empty_bush,
     "quest_board": _draw_quest_board,
     "chest": _draw_chest,
     "quest_marker": _draw_quest_marker,
     "cart": _draw_cart,
+    "workbench": _draw_workbench,
+    "tent": _draw_tent,
+    "boat": _draw_boat,
+    "house": _draw_house,
 }
 
 
@@ -296,20 +365,15 @@ def _draw_status_bar(surface, hud_font, world, config, paused: bool, time_scale:
     _draw_text_lines(surface, hud_font, lines)
 
 
-def _draw_controls_help(surface, hud_font, controls_hint, y0):
-    """The toggleable (H key) help overview - one control per line."""
-    lines = [controls_hint] if isinstance(controls_hint, str) else list(controls_hint)
-    _draw_text_lines(surface, hud_font, lines, y0=y0)
-
-
 def _draw_player_panel(surface, font, world, player_name):
+    """Gold + skills - small, always-visible corner panel. Inventory moved
+    out into its own centered, I-toggled panel (_draw_inventory_panel)."""
     player = world.get_entity_by_name(player_name)
     if player is None:
         return
 
     wallet = player.get_component(Wallet)
     skills = player.get_component(Skills)
-    inventory = player.get_component(Inventory)
 
     lines = [f"Gold: {wallet.gold:.0f}" if wallet else "Gold: -"]
     if skills and skills.levels:
@@ -318,14 +382,6 @@ def _draw_player_panel(surface, font, world, player_name):
             lines.append(f"{skill_name.title()} Lv{level}  ({xp_in_level:.0f}/100 xp)")
     else:
         lines.append("No skills yet")
-
-    if inventory and inventory.items:
-        items_text = ", ".join(
-            f"{name} x{int(count)}" for name, count in sorted(inventory.items.items())
-        )
-        lines.append(f"Inventory: {items_text}")
-    else:
-        lines.append("Inventory: empty")
 
     panel_width = 300
     panel_height = 16 + len(lines) * 32
@@ -340,6 +396,54 @@ def _draw_player_panel(surface, font, world, player_name):
     for i, text in enumerate(lines):
         label = font.render(text, True, (15, 15, 15))
         surface.blit(label, (x0 + 14, y0 + 10 + i * 32))
+
+
+def _centered_panel(surface, width_ratio=0.6, height_ratio=0.7):
+    """Shared background for full-screen-ish overlays (map, inventory,
+    help, build menu) - each toggled independently, drawn in the same
+    style so they read as one family of "open a panel" screens."""
+    width, height = surface.get_size()
+    panel_w, panel_h = int(width * width_ratio), int(height * height_ratio)
+    x0, y0 = (width - panel_w) // 2, (height - panel_h) // 2
+
+    panel = pygame.Surface((panel_w, panel_h))
+    panel.set_alpha(235)
+    panel.fill((20, 20, 20))
+    surface.blit(panel, (x0, y0))
+    return x0, y0, panel_w, panel_h
+
+
+def _draw_titled_panel(surface, hud_font, title, lines, width_ratio=0.6, height_ratio=0.7):
+    x0, y0, panel_w, panel_h = _centered_panel(surface, width_ratio, height_ratio)
+
+    title_label = hud_font.render(title, True, (255, 255, 255))
+    surface.blit(title_label, (x0 + 16, y0 + 14))
+
+    for i, text in enumerate(lines):
+        label = hud_font.render(text, True, (230, 230, 230))
+        surface.blit(label, (x0 + 20, y0 + 60 + i * 32))
+
+    return x0, y0, panel_w, panel_h
+
+
+def _draw_controls_help(surface, hud_font, controls_hint):
+    """The toggleable (H key) help overview - one control per line,
+    centered like the map/inventory/build-menu panels."""
+    lines = [controls_hint] if isinstance(controls_hint, str) else list(controls_hint)
+    _draw_titled_panel(surface, hud_font, "Help (H to close)", lines, height_ratio=0.6)
+
+
+def _draw_inventory_panel(surface, hud_font, world, player_name):
+    """The toggleable (I key) inventory overview - one item per line."""
+    player = world.get_entity_by_name(player_name)
+    inventory = player.get_component(Inventory) if player else None
+
+    if inventory and inventory.items:
+        lines = [f"{name} x{int(count)}" for name, count in sorted(inventory.items.items())]
+    else:
+        lines = ["(empty)"]
+
+    _draw_titled_panel(surface, hud_font, "Inventory (I to close)", lines)
 
 
 def _draw_interact_hint(surface, hud_font, quest_entity):
@@ -430,14 +534,7 @@ def _draw_map_overlay(surface, hud_font, world, player_pos):
     if player_pos is None:
         return
 
-    width, height = surface.get_size()
-    panel_w, panel_h = int(width * 0.8), int(height * 0.8)
-    x0, y0 = (width - panel_w) // 2, (height - panel_h) // 2
-
-    panel = pygame.Surface((panel_w, panel_h))
-    panel.set_alpha(235)
-    panel.fill((20, 20, 20))
-    surface.blit(panel, (x0, y0))
+    x0, y0, panel_w, panel_h = _centered_panel(surface, 0.8, 0.8)
 
     title = hud_font.render(
         f"Explored map - {len(world.loaded_chunks)} chunks discovered (M to close)",
@@ -468,11 +565,38 @@ def _draw_map_overlay(surface, hud_font, world, player_pos):
     pygame.draw.circle(surface, (255, 255, 255), (cx, cy), 5, width=1)
 
 
+def _format_recipe_line(number: int, name: str, recipe: dict, inventory) -> str:
+    inputs_text = ", ".join(f"{item} x{qty:g}" for item, qty in recipe["inputs"].items())
+    afford = all(
+        (inventory.items.get(item, 0) if inventory else 0) >= qty
+        for item, qty in recipe["inputs"].items()
+    )
+    nearby_note = f"  [needs nearby {recipe['requires_nearby']}]" if recipe.get("requires_nearby") else ""
+    mark = "" if afford else "  (not enough materials)"
+    return f"{number}) {name} - {inputs_text}{nearby_note}{mark}"
+
+
+def _draw_build_menu(surface, hud_font, world, player_name, recipes):
+    player = world.get_entity_by_name(player_name)
+    inventory = player.get_component(Inventory) if player else None
+
+    names = sorted(recipes.keys())
+    lines = [
+        _format_recipe_line(i + 1, name, recipes[name], inventory)
+        for i, name in enumerate(names)
+    ] or ["(no recipes known)"]
+    lines.append("")
+    lines.append("Press the number key to craft it.")
+
+    _draw_titled_panel(surface, hud_font, "Build menu (B to close)", lines, height_ratio=0.7)
+
+
 def draw_world(
     surface, font, hud_font, world, config,
     paused: bool = False, time_scale: float = 1.0,
     player_name: str = "Player1", controls_hint=DEFAULT_CONTROLS_HINT,
     show_help: bool = True, show_map: bool = False,
+    show_inventory: bool = False, show_build_menu: bool = False, recipes=None,
 ):
     player = world.get_entity_by_name(player_name)
     player_pos = player.get_component(Position) if player else None
@@ -500,8 +624,6 @@ def draw_world(
 
     _draw_status_bar(surface, hud_font, world, config, paused, time_scale)
     _draw_player_panel(surface, font, world, player_name)
-    if show_help:
-        _draw_controls_help(surface, hud_font, controls_hint, y0=12 + 2 * 38)
 
     nearby_quest = find_interactable_quest(world, player_pos)
     if nearby_quest is not None:
@@ -511,5 +633,11 @@ def draw_world(
     _draw_fill_hint(surface, hud_font, world, player_pos)
     _draw_plant_hint(surface, hud_font, world, player, player_pos)
 
+    if show_help:
+        _draw_controls_help(surface, hud_font, controls_hint)
+    if show_inventory:
+        _draw_inventory_panel(surface, hud_font, world, player_name)
+    if show_build_menu:
+        _draw_build_menu(surface, hud_font, world, player_name, recipes or {})
     if show_map:
         _draw_map_overlay(surface, hud_font, world, player_pos)

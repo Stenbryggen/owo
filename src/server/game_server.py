@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import socket
 import threading
@@ -153,6 +154,7 @@ class GameServer:
 
             send_message(sock, {
                 "type": "welcome", "player_name": name, "config": self.engine.config,
+                "recipes": {n: dataclasses.asdict(r) for n, r in self.engine.recipes.items()},
             })
             print(f"[server] {name} joined from {addr}")
 

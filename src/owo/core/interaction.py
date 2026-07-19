@@ -3,8 +3,10 @@ import math
 from src.owo.components.harvestable import Harvestable
 from src.owo.components.position import Position
 from src.owo.components.quest import Quest
+from src.owo.components.renderable import Renderable
 
 INTERACT_RADIUS = 100
+STRUCTURE_RADIUS = 150
 
 
 def find_interactable_quest(world, player_pos):
@@ -28,6 +30,25 @@ def find_interactable_quest(world, player_pos):
         if dist <= best_dist:
             best, best_dist = entity, dist
     return best
+
+
+def has_nearby_structure(world, player_pos, kind: str, radius: float = STRUCTURE_RADIUS) -> bool:
+    """Whether a placed structure of the given Renderable.kind (e.g.
+    "workbench") is within radius of player_pos - the gate for recipes
+    with requires_nearby set."""
+    if player_pos is None:
+        return False
+
+    for entity in world.entities.values():
+        renderable = entity.get_component(Renderable)
+        if renderable is None or renderable.kind != kind:
+            continue
+        pos = entity.get_component(Position)
+        if pos is None:
+            continue
+        if math.hypot(pos.x - player_pos.x, pos.y - player_pos.y) <= radius:
+            return True
+    return False
 
 
 def find_interactable_resource(world, player_pos):

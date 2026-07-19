@@ -1,0 +1,7 @@
+{
+  "name": "rope",
+  "inputs": {"fiber": 3},
+  "output_item": "rope",
+  "output_count": 1,
+  "time_hours": 0.25
+}

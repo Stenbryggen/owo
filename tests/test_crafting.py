@@ -1,6 +1,9 @@
 from pathlib import Path
 
 from src.owo.components.inventory import Inventory
+from src.owo.components.motion import Motion
+from src.owo.components.position import Position
+from src.owo.components.renderable import Renderable
 from src.owo.core.crafting import can_craft, load_recipes, perform_craft
 from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
@@ -64,3 +67,83 @@ def test_perform_craft_publishes_item_crafted_event():
     perform_craft(world, events, recipes, "Actor", "pickaxe")
 
     assert fired == [{"entity": "Actor", "item": "pickaxe", "count": 1}]
+
+
+def _structures(world, kind):
+    return [
+        e for e in world.entities.values()
+        if (r := e.get_component(Renderable)) is not None and r.kind == kind
+    ]
+
+
+def test_crafting_a_workbench_places_a_structure_not_an_inventory_item():
+    world = World()
+    events = EventBus()
+    actor = world.create_entity("Actor")
+    actor.add_component(Position(x=100, y=200))
+    actor.add_component(Inventory(items={"wood": 5, "stone": 2}))
+    recipes = load_recipes(str(RECIPES_DIR))
+
+    assert perform_craft(world, events, recipes, "Actor", "workbench") is True
+
+    inventory = actor.get_component(Inventory)
+    assert "workbench" not in inventory.items  # went into the world, not the inventory
+    workbenches = _structures(world, "workbench")
+    assert len(workbenches) == 1
+    assert workbenches[0].get_component(Position).x == 100
+
+
+def test_cart_requires_a_nearby_workbench():
+    world = World()
+    events = EventBus()
+    actor = world.create_entity("Actor")
+    actor.add_component(Position(x=0, y=0))
+    actor.add_component(Inventory(items={"wood": 10, "stone": 4, "iron": 2}))
+    recipes = load_recipes(str(RECIPES_DIR))
+
+    assert perform_craft(world, events, recipes, "Actor", "cart") is False
+    assert actor.get_component(Inventory).items["wood"] == 10  # nothing consumed on failure
+
+
+def test_cart_succeeds_once_a_workbench_is_nearby():
+    world = World()
+    events = EventBus()
+    actor = world.create_entity("Actor")
+    actor.add_component(Position(x=0, y=0))
+    actor.add_component(Inventory(items={"wood": 10, "stone": 4, "iron": 2}))
+
+    bench = world.create_entity("Workbench")
+    bench.add_component(Position(x=50, y=0))
+    bench.add_component(Renderable(kind="workbench"))
+
+    recipes = load_recipes(str(RECIPES_DIR))
+    assert perform_craft(world, events, recipes, "Actor", "cart") is True
+    assert len(_structures(world, "cart")) == 1
+
+
+def test_crafted_cart_gives_a_speed_boost_like_the_starting_one():
+    world = World()
+    events = EventBus()
+    actor = world.create_entity("Actor")
+    actor.add_component(Position(x=0, y=0))
+    actor.add_component(Inventory(items={"wood": 10, "stone": 4, "iron": 2}))
+    bench = world.create_entity("Workbench")
+    bench.add_component(Position(x=0, y=0))
+    bench.add_component(Renderable(kind="workbench"))
+    recipes = load_recipes(str(RECIPES_DIR))
+
+    perform_craft(world, events, recipes, "Actor", "cart")
+
+    cart = _structures(world, "cart")[0]
+    assert cart.get_component(Motion).speed_bonus == 0.6
+
+
+def test_rope_recipe_uses_fiber():
+    world = World()
+    events = EventBus()
+    actor = world.create_entity("Actor")
+    actor.add_component(Inventory(items={"fiber": 3}))
+    recipes = load_recipes(str(RECIPES_DIR))
+
+    assert perform_craft(world, events, recipes, "Actor", "rope") is True
+    assert actor.get_component(Inventory).items["rope"] == 1

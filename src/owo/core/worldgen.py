@@ -2,7 +2,7 @@ import hashlib
 import random
 from typing import Tuple
 
-from src.owo.core.resource_spawning import spawn_mine, spawn_tree
+from src.owo.core.resource_spawning import spawn_bush, spawn_mine, spawn_ore_mine, spawn_tree
 from src.owo.core.terrain import TILE_SIZE, carve_lake_with_island, world_to_tile
 
 CHUNK_SIZE = 16  # tiles per chunk side
@@ -10,6 +10,8 @@ CHUNK_SIZE = 16  # tiles per chunk side
 LAKE_CHANCE = 0.25
 TREE_COUNT_RANGE = (2, 6)
 MINE_CHANCE = 0.5
+ORE_MINE_CHANCE = 0.15
+BUSH_COUNT_RANGE = (0, 3)
 
 # Sea: a much bigger, contiguous body of water spanning a whole region of
 # chunks, distinct from the small in-chunk lakes above. Regions are a
@@ -74,6 +76,19 @@ def generate_chunk(world, chunk_x: int, chunk_y: int, base_seed: int = 0, chunk_
         row = origin_row + rng.randint(0, chunk_size - 1)
         if world.terrain.get(col, row) == world.terrain.default:
             spawn_mine(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
+
+    if rng.random() < ORE_MINE_CHANCE:
+        col = origin_col + rng.randint(0, chunk_size - 1)
+        row = origin_row + rng.randint(0, chunk_size - 1)
+        if world.terrain.get(col, row) == world.terrain.default:
+            spawn_ore_mine(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
+
+    for _ in range(rng.randint(*BUSH_COUNT_RANGE)):
+        col = origin_col + rng.randint(0, chunk_size - 1)
+        row = origin_row + rng.randint(0, chunk_size - 1)
+        if world.terrain.get(col, row) != world.terrain.default:
+            continue
+        spawn_bush(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
 
 
 def ensure_chunks_loaded(

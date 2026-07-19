@@ -30,6 +30,7 @@ class NetworkClient:
 
         self.player_name = welcome["player_name"]
         self.config = welcome["config"]
+        self.recipes = welcome.get("recipes", {})
 
         self._world = None
         self._lock = threading.Lock()

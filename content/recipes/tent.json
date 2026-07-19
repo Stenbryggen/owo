@@ -1,0 +1,8 @@
+{
+  "name": "tent",
+  "inputs": {"wood": 4, "rope": 3},
+  "output_item": "tent",
+  "output_count": 1,
+  "output_type": "structure",
+  "time_hours": 1.0
+}

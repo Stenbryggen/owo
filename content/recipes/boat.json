@@ -1,0 +1,9 @@
+{
+  "name": "boat",
+  "inputs": {"wood": 15, "rope": 4, "iron": 2},
+  "output_item": "boat",
+  "output_count": 1,
+  "output_type": "structure",
+  "requires_nearby": "workbench",
+  "time_hours": 3.0
+}

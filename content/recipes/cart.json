@@ -1,0 +1,9 @@
+{
+  "name": "cart",
+  "inputs": {"wood": 10, "stone": 4, "iron": 2},
+  "output_item": "cart",
+  "output_count": 1,
+  "output_type": "structure",
+  "requires_nearby": "workbench",
+  "time_hours": 2.0
+}

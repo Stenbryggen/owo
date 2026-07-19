@@ -13,12 +13,17 @@ CONTROLS_HINT = [
     "E = work quest / harvest",
     "F = fill water with dirt",
     "P = plant a seed",
-    "1 = craft axe",
-    "2 = craft pickaxe",
+    "B = build menu (then press a number to craft)",
+    "I = toggle inventory",
     "F5 = save    F9 = load",
     "H = toggle this help",
     "M = toggle map",
     "ESC = quit",
+]
+
+_NUMBER_KEYS = [
+    pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
+    pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9,
 ]
 
 
@@ -55,6 +60,8 @@ def run(host: str | None, port: int, name: str) -> None:
     hud_font = pygame.font.SysFont(None, 36)
     show_help = True
     show_map = False
+    show_inventory = False
+    show_build_menu = False
 
     local_server = None
     if host is None:
@@ -79,14 +86,19 @@ def run(host: str | None, port: int, name: str) -> None:
                     client.send_save()
                 elif event.key == pygame.K_F9:
                     client.send_load()
-                elif event.key == pygame.K_1:
-                    client.send_craft("axe")
-                elif event.key == pygame.K_2:
-                    client.send_craft("pickaxe")
                 elif event.key == pygame.K_h:
                     show_help = not show_help
                 elif event.key == pygame.K_m:
                     show_map = not show_map
+                elif event.key == pygame.K_i:
+                    show_inventory = not show_inventory
+                elif event.key == pygame.K_b:
+                    show_build_menu = not show_build_menu
+                elif show_build_menu and event.key in _NUMBER_KEYS:
+                    index = _NUMBER_KEYS.index(event.key)
+                    recipe_names = sorted(client.recipes.keys())
+                    if index < len(recipe_names):
+                        client.send_craft(recipe_names[index])
 
         keys = pygame.key.get_pressed()
         dx, dy = _movement_input()
@@ -105,6 +117,8 @@ def run(host: str | None, port: int, name: str) -> None:
                 screen, font, hud_font, world, client.config,
                 player_name=client.player_name, controls_hint=CONTROLS_HINT,
                 show_help=show_help, show_map=show_map,
+                show_inventory=show_inventory, show_build_menu=show_build_menu,
+                recipes=client.recipes,
             )
             pygame.display.flip()
 

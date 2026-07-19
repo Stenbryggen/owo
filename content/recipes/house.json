@@ -1,0 +1,9 @@
+{
+  "name": "house",
+  "inputs": {"wood": 30, "stone": 20, "iron": 4},
+  "output_item": "house",
+  "output_count": 1,
+  "output_type": "structure",
+  "requires_nearby": "workbench",
+  "time_hours": 5.0
+}

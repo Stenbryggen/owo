@@ -1,0 +1,19 @@
+{
+  "name": "Bush1",
+  "components": [
+    {"type": "position", "params": {"x": 1050, "y": 650}},
+    {"type": "renderable", "params": {"kind": "bush"}},
+    {
+      "type": "harvestable",
+      "params": {
+        "resource_type": "fiber",
+        "amount": 3.0,
+        "max_amount": 3.0,
+        "regen_per_hour": 1.0,
+        "on_depleted": "regen",
+        "depleted_kind": "empty_bush",
+        "full_kind": "bush"
+      }
+    }
+  ]
+}

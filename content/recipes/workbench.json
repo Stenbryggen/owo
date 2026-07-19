@@ -1,0 +1,8 @@
+{
+  "name": "workbench",
+  "inputs": {"wood": 5, "stone": 2},
+  "output_item": "workbench",
+  "output_count": 1,
+  "output_type": "structure",
+  "time_hours": 1.0
+}
