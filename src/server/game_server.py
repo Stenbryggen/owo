@@ -21,7 +21,8 @@ PLAYER_TEMPLATE = CONTENT_DIR / "player.json"
 DEFAULT_DB_PATH = REPO_ROOT / "src" / "data" / "saves" / "world.db"
 
 TICK_HZ = 15
-HOURS_PER_SECOND = 0.5  # matches the single-player app's default pace
+DAY_LENGTH_REAL_SECONDS = 15 * 60  # a full in-game day takes 15 real minutes
+HOURS_PER_SECOND = 24.0 / DAY_LENGTH_REAL_SECONDS
 PLAYER_SPEED = 260.0
 FILL_COOLDOWN = 0.2
 PLANT_COOLDOWN = 0.5

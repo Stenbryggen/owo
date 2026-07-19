@@ -15,7 +15,7 @@ from src.owo.core.interaction import find_interactable_quest, find_interactable_
 from src.owo.core.terrain import TILE_SIZE, world_to_tile
 from src.owo.core.work import quest_progress
 
-SCREEN_SIZE = (1600, 900)
+DEFAULT_SCREEN_SIZE = (1600, 900)  # just the initial window size - it's resizable, see play.py
 
 ENTITY_RADIUS = 34
 BAR_WIDTH = 90
@@ -78,11 +78,13 @@ def _draw_terrain(surface, world, config, camera):
         tile_colors[tile_type] = _blend(color, (10, 10, 30), amount=0.35) if night else color
 
     # World is infinite, so the visible tile range is purely a function of
-    # the camera/screen - there is no map edge to clamp to.
+    # the camera/screen - there is no map edge to clamp to. Uses the actual
+    # surface size (not a fixed constant) so a resized window just works.
+    width, height = surface.get_size()
     col_start = int(camera[0] // TILE_SIZE)
-    col_end = int((camera[0] + SCREEN_SIZE[0]) // TILE_SIZE) + 1
+    col_end = int((camera[0] + width) // TILE_SIZE) + 1
     row_start = int(camera[1] // TILE_SIZE)
-    row_end = int((camera[1] + SCREEN_SIZE[1]) // TILE_SIZE) + 1
+    row_end = int((camera[1] + height) // TILE_SIZE) + 1
 
     for col in range(col_start, col_end):
         for row in range(row_start, row_end):
@@ -402,10 +404,11 @@ def draw_world(
     surface, font, hud_font, world, config,
     paused: bool = False, time_scale: float = 1.0,
     player_name: str = "Player1", controls_hint: str = DEFAULT_CONTROLS_HINT,
+    show_hud: bool = True,
 ):
     player = world.get_entity_by_name(player_name)
     player_pos = player.get_component(Position) if player else None
-    camera = compute_camera(player_pos, SCREEN_SIZE) if player_pos else (0, 0)
+    camera = compute_camera(player_pos, surface.get_size()) if player_pos else (0, 0)
 
     surface.fill(sky_color(world, config))
     _draw_terrain(surface, world, config, camera)
@@ -427,8 +430,9 @@ def draw_world(
             drawer(surface, font, x, y, entity)
             _draw_harvestable_bar(surface, x, y, entity)
 
-    _draw_hud(surface, hud_font, world, config, paused, time_scale, controls_hint)
-    _draw_player_panel(surface, font, world, player_name)
+    if show_hud:
+        _draw_hud(surface, hud_font, world, config, paused, time_scale, controls_hint)
+        _draw_player_panel(surface, font, world, player_name)
 
     nearby_quest = find_interactable_quest(world, player_pos)
     if nearby_quest is not None:

@@ -10,7 +10,7 @@ from src.main import build_default_engine  # noqa: E402
 
 def test_render_loop_runs_headless():
     pygame.init()
-    screen = pygame.display.set_mode(renderer.SCREEN_SIZE)
+    screen = pygame.display.set_mode(renderer.DEFAULT_SCREEN_SIZE)
     font = pygame.font.SysFont(None, 32)
     hud_font = pygame.font.SysFont(None, 36)
 

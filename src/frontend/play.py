@@ -10,7 +10,7 @@ from src.server.game_server import GameServer
 
 CONTROLS_HINT = (
     "WASD/arrows=move  E=work/harvest  F=fill water  P=plant  "
-    "1=craft axe 2=craft pickaxe  F5=save F9=load  ESC=quit"
+    "1=craft axe 2=craft pickaxe  F5=save F9=load  H=toggle help  ESC=quit"
 )
 
 
@@ -41,10 +41,11 @@ def run(host: str | None, port: int, name: str) -> None:
     lives once, authoritatively, in GameServer)."""
     pygame.init()
     pygame.display.set_caption(f"AI World Simulator - {name}")
-    screen = pygame.display.set_mode(renderer.SCREEN_SIZE)
+    screen = pygame.display.set_mode(renderer.DEFAULT_SCREEN_SIZE, pygame.RESIZABLE)
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 32)
     hud_font = pygame.font.SysFont(None, 36)
+    show_hud = True
 
     local_server = None
     if host is None:
@@ -62,6 +63,8 @@ def run(host: str | None, port: int, name: str) -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
@@ -73,6 +76,8 @@ def run(host: str | None, port: int, name: str) -> None:
                     client.send_craft("axe")
                 elif event.key == pygame.K_2:
                     client.send_craft("pickaxe")
+                elif event.key == pygame.K_h:
+                    show_hud = not show_hud
 
         keys = pygame.key.get_pressed()
         dx, dy = _movement_input()
@@ -83,6 +88,7 @@ def run(host: str | None, port: int, name: str) -> None:
             renderer.draw_world(
                 screen, font, hud_font, world, client.config,
                 player_name=client.player_name, controls_hint=CONTROLS_HINT,
+                show_hud=show_hud,
             )
             pygame.display.flip()
 
