@@ -7,9 +7,9 @@ from src.owo.core.terrain import TILE_SIZE, carve_lake_with_island, world_to_til
 
 CHUNK_SIZE = 16  # tiles per chunk side
 
-LAKE_CHANCE = 0.12
-TREE_COUNT_RANGE = (1, 4)
-MINE_CHANCE = 0.3
+LAKE_CHANCE = 0.25
+TREE_COUNT_RANGE = (2, 6)
+MINE_CHANCE = 0.5
 
 
 def chunk_of(col: int, row: int, chunk_size: int = CHUNK_SIZE) -> Tuple[int, int]:

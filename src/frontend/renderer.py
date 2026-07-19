@@ -264,27 +264,41 @@ def _format_time(hours: float) -> str:
     return f"{h:02d}:{m:02d}"
 
 
-DEFAULT_CONTROLS_HINT = (
-    "WASD/arrows=move  E=work quest  F=fill water  SPACE=pause  +/-=speed  "
-    "F5=save F9=load  ESC=quit"
-)
+DEFAULT_CONTROLS_HINT = [
+    "WASD/arrows = move",
+    "E = work quest",
+    "F = fill water",
+    "F5 = save    F9 = load",
+    "H = toggle this help",
+    "ESC = quit",
+]
 
 
-def _draw_hud(surface, hud_font, world, config, paused: bool, time_scale: float, controls_hint: str):
-    night_label = "Night" if is_night(world, config) else "Day"
-    lines = [
-        f"Season: {world.current_season}  (Day {world.day_count})  {night_label}",
-        f"Time: {_format_time(world.current_time)}    Speed: {time_scale:g}x"
-        + ("  [PAUSED]" if paused else ""),
-        controls_hint,
-    ]
+def _draw_text_lines(surface, hud_font, lines, x0=16, y0=12):
     for i, text in enumerate(lines):
         label = hud_font.render(text, True, (15, 15, 15))
         bg = pygame.Surface(label.get_size())
         bg.set_alpha(140)
         bg.fill((255, 255, 255))
-        surface.blit(bg, (16, 12 + i * 38))
-        surface.blit(label, (20, 14 + i * 38))
+        surface.blit(bg, (x0, y0 + i * 38))
+        surface.blit(label, (x0 + 4, y0 + 2 + i * 38))
+
+
+def _draw_status_bar(surface, hud_font, world, config, paused: bool, time_scale: float):
+    """Season/day/time - always visible, not part of the toggleable help."""
+    night_label = "Night" if is_night(world, config) else "Day"
+    lines = [
+        f"Season: {world.current_season}  (Day {world.day_count})  {night_label}",
+        f"Time: {_format_time(world.current_time)}    Speed: {time_scale:g}x"
+        + ("  [PAUSED]" if paused else ""),
+    ]
+    _draw_text_lines(surface, hud_font, lines)
+
+
+def _draw_controls_help(surface, hud_font, controls_hint, y0):
+    """The toggleable (H key) help overview - one control per line."""
+    lines = [controls_hint] if isinstance(controls_hint, str) else list(controls_hint)
+    _draw_text_lines(surface, hud_font, lines, y0=y0)
 
 
 def _draw_player_panel(surface, font, world, player_name):
@@ -403,8 +417,8 @@ def _draw_plant_hint(surface, hud_font, world, player, player_pos):
 def draw_world(
     surface, font, hud_font, world, config,
     paused: bool = False, time_scale: float = 1.0,
-    player_name: str = "Player1", controls_hint: str = DEFAULT_CONTROLS_HINT,
-    show_hud: bool = True,
+    player_name: str = "Player1", controls_hint=DEFAULT_CONTROLS_HINT,
+    show_help: bool = True,
 ):
     player = world.get_entity_by_name(player_name)
     player_pos = player.get_component(Position) if player else None
@@ -430,9 +444,10 @@ def draw_world(
             drawer(surface, font, x, y, entity)
             _draw_harvestable_bar(surface, x, y, entity)
 
-    if show_hud:
-        _draw_hud(surface, hud_font, world, config, paused, time_scale, controls_hint)
-        _draw_player_panel(surface, font, world, player_name)
+    _draw_status_bar(surface, hud_font, world, config, paused, time_scale)
+    _draw_player_panel(surface, font, world, player_name)
+    if show_help:
+        _draw_controls_help(surface, hud_font, controls_hint, y0=12 + 2 * 38)
 
     nearby_quest = find_interactable_quest(world, player_pos)
     if nearby_quest is not None:

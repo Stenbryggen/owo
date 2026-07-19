@@ -8,10 +8,17 @@ from src.frontend import renderer
 from src.frontend.network_client import NetworkClient
 from src.server.game_server import GameServer
 
-CONTROLS_HINT = (
-    "WASD/arrows=move  E=work/harvest  F=fill water  P=plant  "
-    "1=craft axe 2=craft pickaxe  F5=save F9=load  H=toggle help  ESC=quit"
-)
+CONTROLS_HINT = [
+    "WASD/arrows = move",
+    "E = work quest / harvest",
+    "F = fill water with dirt",
+    "P = plant a seed",
+    "1 = craft axe",
+    "2 = craft pickaxe",
+    "F5 = save    F9 = load",
+    "H = toggle this help",
+    "ESC = quit",
+]
 
 
 def _movement_input():
@@ -45,7 +52,7 @@ def run(host: str | None, port: int, name: str) -> None:
     clock = pygame.time.Clock()
     font = pygame.font.SysFont(None, 32)
     hud_font = pygame.font.SysFont(None, 36)
-    show_hud = True
+    show_help = True
 
     local_server = None
     if host is None:
@@ -63,8 +70,6 @@ def run(host: str | None, port: int, name: str) -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.VIDEORESIZE:
-                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
@@ -77,7 +82,7 @@ def run(host: str | None, port: int, name: str) -> None:
                 elif event.key == pygame.K_2:
                     client.send_craft("pickaxe")
                 elif event.key == pygame.K_h:
-                    show_hud = not show_hud
+                    show_help = not show_help
 
         keys = pygame.key.get_pressed()
         dx, dy = _movement_input()
@@ -85,10 +90,17 @@ def run(host: str | None, port: int, name: str) -> None:
 
         world = client.get_world()
         if world is not None:
+            # SDL resizes the actual window surface on its own for a
+            # RESIZABLE window - fetching it fresh each frame (instead of
+            # reusing the surface from the initial set_mode() call, or
+            # calling set_mode() again on every VIDEORESIZE) is what
+            # actually picks up the new size without the window manager
+            # fighting back to the original size.
+            screen = pygame.display.get_surface()
             renderer.draw_world(
                 screen, font, hud_font, world, client.config,
                 player_name=client.player_name, controls_hint=CONTROLS_HINT,
-                show_hud=show_hud,
+                show_help=show_help,
             )
             pygame.display.flip()
 
