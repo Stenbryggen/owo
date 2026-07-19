@@ -1,9 +1,11 @@
 import uuid
 from typing import Dict, List, Type, Any
 
+
 class Component:
-    """Base class for all components."""
+    """Marker base class for all components. Concrete components are dataclasses."""
     pass
+
 
 class Entity:
     def __init__(self, name: str = None):
@@ -21,9 +23,15 @@ class Entity:
     def has_component(self, component_type: Type[Component]) -> bool:
         return component_type in self.components
 
+
 class World:
     def __init__(self):
         self.entities: Dict[uuid.UUID, Entity] = {}
+        # Global simulation clock, owned by the time_season system. Not an
+        # ECS component since it describes the world itself, not an entity.
+        self.current_time: float = 0.0
+        self.day_count: int = 0
+        self.current_season: str = None
 
     def create_entity(self, name: str = None) -> Entity:
         entity = Entity(name)
@@ -35,24 +43,3 @@ class World:
             e for e in self.entities.values()
             if all(e.has_component(ct) for ct in component_types)
         ]
-
-# Define some base components mentioned in the architecture
-class MotionComponent(Component):
-    def __init__(self, speed: float = 0.0):
-        self.speed = speed
-
-class ThermalComponent(Component):
-    def __init__(self, insulation: float = 0.0, heat_source: float = 0.0):
-        self.insulation = insulation
-        self.heat_source = heat_source
-
-class EnergyComponent(Component):
-    def __init__(self, current: float = 100.0, max_energy: float = 100.0):
-        self.current = current
-        self.max_energy = max_energy
-
-class HealthComponent(Component):
-    def __init__(self, current: float = 100.0, max_health: float = 100.0, is_sick: bool = False):
-        self.current = current
-        self.max_health = max_health
-        self.is_sick = is_sick
