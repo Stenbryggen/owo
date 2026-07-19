@@ -5,14 +5,14 @@ from src.owo.components.health import Health
 from src.owo.components.sleep import Sleep
 from src.owo.components.thermal import Thermal
 
-SCREEN_SIZE = (900, 500)
-GROUND_Y = 320
-ENTITY_RADIUS = 30
-ENTITY_SPACING = 220
-ENTITY_START_X = 150
+SCREEN_SIZE = (1440, 800)
+GROUND_Y = 500
+ENTITY_RADIUS = 48
+ENTITY_SPACING = 350
+ENTITY_START_X = 240
 
-BAR_WIDTH = 60
-BAR_HEIGHT = 8
+BAR_WIDTH = 96
+BAR_HEIGHT = 14
 
 DAY_BG = (135, 196, 235)
 NIGHT_BG = (18, 24, 48)
@@ -60,30 +60,30 @@ def _draw_living_entity(surface, font, x, entity):
     pygame.draw.circle(surface, (20, 20, 20), (x, GROUND_Y), ENTITY_RADIUS, width=2)
 
     label = font.render(entity.name, True, (20, 20, 20))
-    surface.blit(label, label.get_rect(center=(x, GROUND_Y - ENTITY_RADIUS - 16)))
+    surface.blit(label, label.get_rect(center=(x, GROUND_Y - ENTITY_RADIUS - 28)))
 
     bar_x = x - BAR_WIDTH // 2
     if energy:
-        _bar(surface, bar_x, GROUND_Y + ENTITY_RADIUS + 10,
+        _bar(surface, bar_x, GROUND_Y + ENTITY_RADIUS + 16,
              energy.current / energy.max_energy, (90, 200, 90))
     if health:
-        _bar(surface, bar_x, GROUND_Y + ENTITY_RADIUS + 22,
+        _bar(surface, bar_x, GROUND_Y + ENTITY_RADIUS + 34,
              health.current / health.max_health, (210, 70, 70))
 
     if sleep and sleep.is_sleeping:
         zzz = font.render("Zzz", True, (230, 230, 255))
-        surface.blit(zzz, (x + ENTITY_RADIUS - 5, GROUND_Y - ENTITY_RADIUS - 40))
+        surface.blit(zzz, (x + ENTITY_RADIUS - 8, GROUND_Y - ENTITY_RADIUS - 64))
 
 
 def _draw_thermal_entity(surface, font, x, entity):
-    flicker = 4 if (pygame.time.get_ticks() // 200) % 2 == 0 else 0
+    flicker = 6 if (pygame.time.get_ticks() // 200) % 2 == 0 else 0
     pygame.draw.polygon(
         surface,
         (240, 120, 30),
-        [(x, GROUND_Y - 26 - flicker), (x - 16, GROUND_Y + 10), (x + 16, GROUND_Y + 10)],
+        [(x, GROUND_Y - 42 - flicker), (x - 26, GROUND_Y + 16), (x + 26, GROUND_Y + 16)],
     )
     label = font.render(entity.name, True, (20, 20, 20))
-    surface.blit(label, label.get_rect(center=(x, GROUND_Y - ENTITY_RADIUS - 16)))
+    surface.blit(label, label.get_rect(center=(x, GROUND_Y - ENTITY_RADIUS - 28)))
 
 
 def _format_time(hours: float) -> str:
@@ -102,7 +102,7 @@ def _draw_hud(surface, hud_font, world, config, paused: bool, time_scale: float)
     ]
     for i, text in enumerate(lines):
         label = hud_font.render(text, True, (15, 15, 15))
-        surface.blit(label, (12, 10 + i * 22))
+        surface.blit(label, (20, 16 + i * 34))
 
 
 def draw_world(surface, font, hud_font, engine, paused: bool = False, time_scale: float = 1.0):
@@ -111,7 +111,7 @@ def draw_world(surface, font, hud_font, engine, paused: bool = False, time_scale
     surface.fill(background_color(world, config))
     pygame.draw.rect(
         surface, (60, 110, 50),
-        (0, GROUND_Y + ENTITY_RADIUS + 30, surface.get_width(), 200),
+        (0, GROUND_Y + ENTITY_RADIUS + 48, surface.get_width(), 320),
     )
 
     x = ENTITY_START_X

@@ -11,8 +11,8 @@ def run():
     pygame.display.set_caption("AI World Simulator")
     screen = pygame.display.set_mode(renderer.SCREEN_SIZE)
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont(None, 20)
-    hud_font = pygame.font.SysFont(None, 24)
+    font = pygame.font.SysFont(None, 32)
+    hud_font = pygame.font.SysFont(None, 36)
 
     engine = build_default_engine()
 
