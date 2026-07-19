@@ -6,6 +6,7 @@ from src.data.save_manager import load_world, save_world
 from src.frontend import renderer
 from src.main import REPO_ROOT, build_default_engine
 from src.owo.components.position import Position
+from src.owo.core.interaction import find_interactable_quest
 from src.owo.core.movement import speed_multiplier
 
 DEFAULT_HOURS_PER_SECOND = 0.5  # 1 real second = 0.5 in-game hours -> a full day takes 48s
@@ -94,7 +95,7 @@ def run():
             keys = pygame.key.get_pressed()
 
             if player is not None and keys[pygame.K_e]:
-                quest_entity = renderer.find_interactable_quest(engine.world, player_pos)
+                quest_entity = find_interactable_quest(engine.world, player_pos)
                 if quest_entity is not None:
                     engine.perform_work(player.name, quest_entity.name, dt_seconds * time_scale)
 
@@ -103,7 +104,10 @@ def run():
                 if engine.fill_terrain_tile(player_pos.x, player_pos.y):
                     fill_timer = FILL_COOLDOWN
 
-        renderer.draw_world(screen, font, hud_font, engine, paused=paused, time_scale=time_scale)
+        renderer.draw_world(
+            screen, font, hud_font, engine.world, engine.config,
+            paused=paused, time_scale=time_scale,
+        )
         pygame.display.flip()
 
     pygame.quit()

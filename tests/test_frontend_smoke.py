@@ -18,6 +18,6 @@ def test_render_loop_runs_headless():
 
     for _ in range(5):
         engine.update(1.0)
-        renderer.draw_world(screen, font, hud_font, engine)
+        renderer.draw_world(screen, font, hud_font, engine.world, engine.config)
 
     pygame.quit()

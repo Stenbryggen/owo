@@ -1,5 +1,3 @@
-import math
-
 import pygame
 
 from src.owo.components.energy import Energy
@@ -11,6 +9,7 @@ from src.owo.components.skills import Skills
 from src.owo.components.sleep import Sleep
 from src.owo.components.thermal import Thermal
 from src.owo.components.wallet import Wallet
+from src.owo.core.interaction import find_interactable_quest
 from src.owo.core.terrain import TILE_SIZE, world_to_tile
 from src.owo.core.work import quest_progress
 
@@ -21,7 +20,6 @@ ENTITY_RADIUS = 34
 BAR_WIDTH = 90
 BAR_HEIGHT = 14
 
-INTERACT_RADIUS = 100
 QUEST_STATUS_COLOR = {
     "open": (230, 195, 60),
     "in_progress": (80, 140, 220),
@@ -220,41 +218,25 @@ _PROP_DRAWERS = {
 }
 
 
-def find_interactable_quest(world, player_pos):
-    """Nearest open/in-progress quest entity within INTERACT_RADIUS of
-    player_pos, or None. Shared by the frontend's interact prompt and its
-    "E to work" input handling so both agree on what's reachable."""
-    if player_pos is None:
-        return None
-
-    best, best_dist = None, INTERACT_RADIUS
-    for entity in world.entities.values():
-        quest = entity.get_component(Quest)
-        if quest is None or quest.status == "completed":
-            continue
-        pos = entity.get_component(Position)
-        if pos is None:
-            continue
-        dist = math.hypot(pos.x - player_pos.x, pos.y - player_pos.y)
-        if dist <= best_dist:
-            best, best_dist = entity, dist
-    return best
-
-
 def _format_time(hours: float) -> str:
     h = int(hours) % 24
     m = int((hours - int(hours)) * 60)
     return f"{h:02d}:{m:02d}"
 
 
-def _draw_hud(surface, hud_font, world, config, paused: bool, time_scale: float):
+DEFAULT_CONTROLS_HINT = (
+    "WASD/arrows=move  E=work quest  F=fill water  SPACE=pause  +/-=speed  "
+    "F5=save F9=load  ESC=quit"
+)
+
+
+def _draw_hud(surface, hud_font, world, config, paused: bool, time_scale: float, controls_hint: str):
     night_label = "Night" if is_night(world, config) else "Day"
     lines = [
         f"Season: {world.current_season}  (Day {world.day_count})  {night_label}",
         f"Time: {_format_time(world.current_time)}    Speed: {time_scale:g}x"
         + ("  [PAUSED]" if paused else ""),
-        "WASD/arrows=move  E=work quest  F=fill water  SPACE=pause  +/-=speed  "
-        "F5=save F9=load  ESC=quit",
+        controls_hint,
     ]
     for i, text in enumerate(lines):
         label = hud_font.render(text, True, (15, 15, 15))
@@ -265,8 +247,8 @@ def _draw_hud(surface, hud_font, world, config, paused: bool, time_scale: float)
         surface.blit(label, (20, 14 + i * 38))
 
 
-def _draw_player_panel(surface, font, world):
-    player = world.get_entity_by_name("Player1")
+def _draw_player_panel(surface, font, world, player_name):
+    player = world.get_entity_by_name(player_name)
     if player is None:
         return
 
@@ -331,10 +313,12 @@ def _draw_fill_hint(surface, hud_font, world, player_pos):
     surface.blit(label, (x, y))
 
 
-def draw_world(surface, font, hud_font, engine, paused: bool = False, time_scale: float = 1.0):
-    world, config = engine.world, engine.config
-
-    player = world.get_entity_by_name("Player1")
+def draw_world(
+    surface, font, hud_font, world, config,
+    paused: bool = False, time_scale: float = 1.0,
+    player_name: str = "Player1", controls_hint: str = DEFAULT_CONTROLS_HINT,
+):
+    player = world.get_entity_by_name(player_name)
     player_pos = player.get_component(Position) if player else None
     camera = compute_camera(player_pos, SCREEN_SIZE, WORLD_SIZE) if player_pos else (0, 0)
 
@@ -357,7 +341,7 @@ def draw_world(surface, font, hud_font, engine, paused: bool = False, time_scale
             drawer = _PROP_DRAWERS.get(kind, _draw_generic_prop)
             drawer(surface, font, x, y, entity)
 
-    _draw_hud(surface, hud_font, world, config, paused, time_scale)
-    _draw_player_panel(surface, font, world)
+    _draw_hud(surface, hud_font, world, config, paused, time_scale, controls_hint)
+    _draw_player_panel(surface, font, world, player_name)
     _draw_interact_hint(surface, hud_font, find_interactable_quest(world, player_pos))
     _draw_fill_hint(surface, hud_font, world, player_pos)
