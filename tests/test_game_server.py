@@ -5,16 +5,32 @@ import time
 
 import pytest
 
+from src.data.save_manager import load_world as sqlite_load_world
 from src.server.game_server import GameServer
 
 
 @pytest.fixture
-def server():
-    srv = GameServer(host="127.0.0.1", port=0)
-    threading.Thread(target=srv.start, daemon=True).start()
-    assert srv.ready.wait(timeout=2), "server did not start in time"
-    yield srv
-    srv.stop()
+def make_server(tmp_path):
+    created = []
+
+    def _make(**kwargs):
+        kwargs.setdefault("db_path", str(tmp_path / "world.db"))
+        kwargs.setdefault("autosave_interval_seconds", 9999.0)  # opt-in per test
+        srv = GameServer(host="127.0.0.1", port=0, **kwargs)
+        threading.Thread(target=srv.start, daemon=True).start()
+        assert srv.ready.wait(timeout=2), "server did not start in time"
+        created.append(srv)
+        return srv
+
+    yield _make
+
+    for srv in created:
+        srv.stop()
+
+
+@pytest.fixture
+def server(make_server):
+    return make_server()
 
 
 def _connect(port):
@@ -47,6 +63,12 @@ def _close(sock, file):
 def _position_x(state_msg, entity_name):
     entity = next(e for e in state_msg["world"]["entities"] if e["name"] == entity_name)
     return next(c["params"]["x"] for c in entity["components"] if c["type"] == "position")
+
+
+def _position_x_from_world(world, entity_name):
+    from src.owo.components.position import Position
+
+    return world.get_entity_by_name(entity_name).get_component(Position).x
 
 
 def test_two_clients_with_same_requested_name_get_deduped(server):
@@ -137,3 +159,106 @@ def test_two_players_see_each_other_in_the_shared_world(server):
 
     _close(sock_a, file_a)
     _close(sock_b, file_b)
+
+
+def test_save_message_persists_the_world_to_sqlite(make_server, tmp_path):
+    db_path = str(tmp_path / "save_test.db")
+    srv = make_server(db_path=db_path)
+
+    sock, file = _connect(srv.port)
+    _send(sock, {"type": "join", "name": "Saver"})
+    name = _recv(file)["player_name"]
+    _recv(file)  # first state broadcast
+
+    _send(sock, {"type": "input", "dx": 1.0, "dy": 0.0, "work": False, "fill": False})
+    time.sleep(0.3)
+
+    _send(sock, {"type": "save"})
+    time.sleep(0.2)
+
+    saved_world = sqlite_load_world(db_path)
+    assert saved_world is not None
+    assert saved_world.get_entity_by_name(name) is not None
+
+    _close(sock, file)
+
+
+def test_load_message_restores_previously_saved_position(make_server, tmp_path):
+    db_path = str(tmp_path / "load_test.db")
+    srv = make_server(db_path=db_path)
+
+    sock, file = _connect(srv.port)
+    _send(sock, {"type": "join", "name": "Loader"})
+    name = _recv(file)["player_name"]
+    first_state = _recv(file)
+    x_at_join = _position_x(first_state, name)
+
+    _send(sock, {"type": "input", "dx": 1.0, "dy": 0.0, "work": False, "fill": False})
+    time.sleep(0.3)
+    _send(sock, {"type": "save"})
+    time.sleep(0.2)
+
+    saved_world = sqlite_load_world(db_path)
+    x_at_save = _position_x_from_world(saved_world, name)
+    assert x_at_save > x_at_join
+
+    time.sleep(0.3)  # keep moving after the save
+    _send(sock, {"type": "input", "dx": 0.0, "dy": 0.0, "work": False, "fill": False})
+
+    _send(sock, {"type": "load"})
+    time.sleep(0.3)  # let the server actually process the load before we check
+
+    latest = None
+    for _ in range(20):
+        msg = _recv(file)
+        if msg is not None:
+            latest = msg
+    x_after_load = _position_x(latest, name)
+
+    assert x_after_load == pytest.approx(x_at_save, abs=1.0)
+
+    _close(sock, file)
+
+
+def test_autosave_persists_periodically(make_server, tmp_path):
+    db_path = str(tmp_path / "autosave_test.db")
+    srv = make_server(db_path=db_path, autosave_interval_seconds=0.3)
+
+    sock, file = _connect(srv.port)
+    _send(sock, {"type": "join", "name": "Auto"})
+    name = _recv(file)["player_name"]
+    _recv(file)
+
+    _send(sock, {"type": "input", "dx": 1.0, "dy": 0.0, "work": False, "fill": False})
+
+    deadline = time.monotonic() + 3.0
+    saved = None
+    while time.monotonic() < deadline:
+        saved = sqlite_load_world(db_path)
+        if saved is not None and saved.get_entity_by_name(name) is not None:
+            break
+        time.sleep(0.1)
+
+    assert saved is not None
+    assert saved.get_entity_by_name(name) is not None
+
+    _close(sock, file)
+
+
+def test_new_server_picks_up_a_previously_saved_world(make_server, tmp_path):
+    db_path = str(tmp_path / "restart_test.db")
+    srv_a = make_server(db_path=db_path)
+
+    sock, file = _connect(srv_a.port)
+    _send(sock, {"type": "join", "name": "Persistent"})
+    name = _recv(file)["player_name"]
+    _recv(file)
+    _send(sock, {"type": "input", "dx": 1.0, "dy": 0.0, "work": False, "fill": False})
+    time.sleep(0.3)
+    _send(sock, {"type": "save"})
+    time.sleep(0.2)
+    _close(sock, file)
+    srv_a.stop()
+
+    srv_b = make_server(db_path=db_path)
+    assert srv_b.engine.world.get_entity_by_name(name) is not None

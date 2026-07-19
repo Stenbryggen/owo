@@ -4,6 +4,7 @@ import threading
 import time
 from pathlib import Path
 
+from src.data.save_manager import load_world, save_world
 from src.owo.components.position import Position
 from src.owo.core.engine import SimulationEngine
 from src.owo.core.interaction import find_interactable_quest
@@ -17,11 +18,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = REPO_ROOT / "config" / "world.json"
 CONTENT_DIR = REPO_ROOT / "content" / "entities"
 PLAYER_TEMPLATE = CONTENT_DIR / "player.json"
+DEFAULT_DB_PATH = REPO_ROOT / "src" / "data" / "saves" / "world.db"
 
 TICK_HZ = 15
 HOURS_PER_SECOND = 0.5  # matches the single-player app's default pace
 PLAYER_SPEED = 260.0
 FILL_COOLDOWN = 0.2
+DEFAULT_AUTOSAVE_INTERVAL_SECONDS = 30.0
 
 
 class ClientSession:
@@ -36,10 +39,22 @@ class ClientSession:
 
 
 class GameServer:
-    def __init__(self, host: str = "0.0.0.0", port: int = 8765):
+    def __init__(
+        self, host: str = "0.0.0.0", port: int = 8765,
+        db_path: str = str(DEFAULT_DB_PATH),
+        autosave_interval_seconds: float = DEFAULT_AUTOSAVE_INTERVAL_SECONDS,
+    ):
         self.host = host
         self.port = port
+        self.db_path = db_path
+        self.autosave_interval_seconds = autosave_interval_seconds
+
         self.engine = SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR))
+        loaded_world = load_world(self.db_path)
+        if loaded_world is not None:
+            self.engine.world = loaded_world
+            print(f"[server] loaded saved world from {self.db_path}")
+
         self.clients: dict[str, ClientSession] = {}
         self._lock = threading.Lock()
         self._next_spawn_index = 1  # spawn_index 0 is content/entities/player.json's own spot
@@ -132,10 +147,44 @@ class GameServer:
                             session.dy = float(msg.get("dy", 0.0))
                             session.work = bool(msg.get("work", False))
                             session.fill = bool(msg.get("fill", False))
+                elif msg.get("type") == "save":
+                    self._save()
+                    print(f"[server] saved to {self.db_path} (requested by {name})")
+                elif msg.get("type") == "load":
+                    self._load()
+                    print(f"[server] loaded from {self.db_path} (requested by {name})")
         except (ConnectionResetError, BrokenPipeError, OSError, json.JSONDecodeError):
             pass
         finally:
             self._disconnect(name)
+
+    def _save_locked(self) -> None:
+        """Persist the current world. Caller must already hold self._lock."""
+        save_world(self.engine.world, self.db_path)
+
+    def _save(self) -> None:
+        with self._lock:
+            self._save_locked()
+
+    def _load_locked(self) -> None:
+        """Replace the current world with the saved one, if any. Caller
+        must already hold self._lock. Respawns any connected client whose
+        entity isn't in the loaded world (e.g. they joined after the save
+        was taken) so nobody silently disappears."""
+        loaded_world = load_world(self.db_path)
+        if loaded_world is None:
+            return
+
+        self.engine.world = loaded_world
+        for name in self.clients:
+            if self.engine.world.get_entity_by_name(name) is None:
+                spawn_index = self._next_spawn_index
+                self._next_spawn_index += 1
+                spawn_player(self.engine.world, str(PLAYER_TEMPLATE), name, spawn_index)
+
+    def _load(self) -> None:
+        with self._lock:
+            self._load_locked()
 
     def _disconnect(self, name: str | None) -> None:
         if name is None:
@@ -151,6 +200,7 @@ class GameServer:
     def _tick_loop(self) -> None:
         dt_real = 1.0 / TICK_HZ
         dt_hours = dt_real * HOURS_PER_SECOND
+        time_since_save = 0.0
 
         while not self._stop_event.is_set():
             start = time.monotonic()
@@ -183,6 +233,11 @@ class GameServer:
 
                 snapshot = {"type": "state", "world": world_to_dict(self.engine.world)}
                 recipients = list(self.clients.items())
+
+                time_since_save += dt_real
+                if time_since_save >= self.autosave_interval_seconds:
+                    self._save_locked()
+                    time_since_save = 0.0
 
             self._broadcast(snapshot, recipients)
 

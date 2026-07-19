@@ -4,16 +4,16 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Regression test for a real bug: multiplayer_app.py never builds a
-# SimulationEngine (only src/main.py's build_default_engine() does, via
-# SimulationEngine.__init__ calling registry.discover_and_import), so
-# nothing guaranteed every component module (e.g. motion.py, only ever
-# imported indirectly) got registered before world_from_dict() tried to
-# deserialize a snapshot containing one. Must run in a fresh subprocess -
-# in the normal test process, other tests have already imported every
-# component module, which would hide the bug.
+# Regression test for a real bug: the network client never builds a
+# SimulationEngine (only src/main.py's build_default_engine() and
+# GameServer do, via SimulationEngine.__init__ calling
+# registry.discover_and_import), so nothing guaranteed every component
+# module (e.g. motion.py, only ever imported indirectly) got registered
+# before world_from_dict() tried to deserialize a snapshot containing one.
+# Must run in a fresh subprocess - in the normal test process, other tests
+# have already imported every component module, which would hide the bug.
 _SCRIPT = """
-import src.frontend.multiplayer_app  # noqa: F401 - must register every component as a side effect
+import src.frontend.network_client  # noqa: F401 - must register every component as a side effect
 from src.owo.core.serialization import world_from_dict
 
 payload = {
@@ -31,7 +31,7 @@ print("OK")
 """
 
 
-def test_multiplayer_client_can_deserialize_every_component_type():
+def test_network_client_can_deserialize_every_component_type():
     result = subprocess.run(
         [sys.executable, "-c", _SCRIPT],
         cwd=str(REPO_ROOT),

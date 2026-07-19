@@ -1,10 +1,12 @@
-"""The wire protocol between game_server.py and frontend/multiplayer_app.py:
+"""The wire protocol between game_server.py and frontend/network_client.py:
 newline-delimited JSON over a plain TCP socket. Kept tiny and stdlib-only
 on purpose - one message per line, both directions.
 
 Client -> Server:
   {"type": "join", "name": "<requested name>"}                  - first message
   {"type": "input", "dx": -1..1, "dy": -1..1, "work": bool, "fill": bool}
+  {"type": "save"}                                               - persist the world now
+  {"type": "load"}                                               - replace the world with the last save
 
 Server -> Client:
   {"type": "welcome", "player_name": "<assigned name>", "config": {...}}
