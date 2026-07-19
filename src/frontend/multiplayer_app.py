@@ -6,10 +6,16 @@ import threading
 import pygame
 
 from src.frontend import renderer
+from src.owo.core import registry
 from src.owo.core.serialization import world_from_dict
 from src.server.protocol import read_message, send_message
 
 NETWORK_CONTROLS_HINT = "WASD/arrows=move  E=work quest  F=fill water  ESC=quit  (networked)"
+
+# world_from_dict() needs every component type registered before it can
+# deserialize a snapshot, but the client never builds a SimulationEngine
+# (which normally does this) - it only ever reads snapshots.
+registry.discover_and_import("src.owo.components")
 
 
 class NetworkClient:
