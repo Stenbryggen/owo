@@ -12,6 +12,7 @@ class TimeSeasonSystem(System):
         if world.current_time >= day_length:
             world.current_time -= day_length
             world.day_count += 1
+            events.publish("new_day", {"day": world.day_count})
             self._update_season(world, world_config, events)
 
     def _update_season(self, world, world_config, events):

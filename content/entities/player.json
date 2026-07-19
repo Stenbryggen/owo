@@ -6,6 +6,7 @@
     {"type": "health", "params": {"current": 100.0, "max_health": 100.0}},
     {"type": "sleep", "params": {"is_sleeping": true}},
     {"type": "skills", "params": {}},
-    {"type": "wallet", "params": {"gold": 0.0}}
+    {"type": "wallet", "params": {"gold": 0.0}},
+    {"type": "relationships", "params": {}}
   ]
 }

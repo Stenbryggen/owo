@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Protocol
+from typing import Protocol
 
 
 class AIProvider(Protocol):
@@ -20,14 +20,18 @@ class StubAIProvider:
         return {"status": "not_implemented", "request": request}
 
 
-_PROVIDERS: Dict[str, Callable[[], AIProvider]] = {
-    "stub": StubAIProvider,
-}
+def get_provider(config: dict) -> AIProvider:
+    """Picks the AIProvider implementation named by config["ai_provider"].
+    New providers are added as new files (e.g. src/api/n8n_provider.py) and
+    a new branch here - the rest of the simulation never changes."""
+    name = config.get("ai_provider", "stub")
 
+    if name == "stub":
+        return StubAIProvider()
 
-def get_provider(name: str) -> AIProvider:
-    try:
-        provider_cls = _PROVIDERS[name]
-    except KeyError:
-        raise ValueError(f"Unknown AI provider: {name!r}")
-    return provider_cls()
+    if name == "n8n":
+        from src.api.n8n_provider import N8nAIProvider
+
+        return N8nAIProvider(webhook_url=config["n8n_webhook_url"])
+
+    raise ValueError(f"Unknown AI provider: {name!r}")

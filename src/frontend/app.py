@@ -2,12 +2,15 @@ import math
 
 import pygame
 
+from src.data.save_manager import load_world, save_world
 from src.frontend import renderer
-from src.main import build_default_engine
+from src.main import REPO_ROOT, build_default_engine
 from src.owo.components.position import Position
+from src.owo.core.movement import speed_multiplier
 
 DEFAULT_HOURS_PER_SECOND = 0.5  # 1 real second = 0.5 in-game hours -> a full day takes 48s
 PLAYER_SPEED = 260.0  # world units per second
+SAVE_PATH = REPO_ROOT / "src" / "data" / "saves" / "slot1.json"
 
 
 def _movement_input():
@@ -61,11 +64,23 @@ def run():
                     time_scale = min(time_scale * 2, 16.0)
                 elif event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
                     time_scale = max(time_scale / 2, 0.03125)
+                elif event.key == pygame.K_F5:
+                    save_world(engine.world, str(SAVE_PATH))
+                    print(f"Saved to {SAVE_PATH}")
+                elif event.key == pygame.K_F9:
+                    try:
+                        engine.world = load_world(str(SAVE_PATH))
+                        player = engine.world.get_entity_by_name("Player1")
+                        player_pos = player.get_component(Position) if player else None
+                        print(f"Loaded from {SAVE_PATH}")
+                    except FileNotFoundError:
+                        print(f"No save file at {SAVE_PATH}")
 
         if player_pos is not None:
             dx, dy = _movement_input()
-            player_pos.x = max(0, min(renderer.WORLD_SIZE[0], player_pos.x + dx * PLAYER_SPEED * dt_seconds))
-            player_pos.y = max(0, min(renderer.WORLD_SIZE[1], player_pos.y + dy * PLAYER_SPEED * dt_seconds))
+            speed = PLAYER_SPEED * speed_multiplier(engine.world, player_pos)
+            player_pos.x = max(0, min(renderer.WORLD_SIZE[0], player_pos.x + dx * speed * dt_seconds))
+            player_pos.y = max(0, min(renderer.WORLD_SIZE[1], player_pos.y + dy * speed * dt_seconds))
 
         if not paused:
             engine.update(dt_seconds * time_scale)

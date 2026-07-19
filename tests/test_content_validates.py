@@ -4,19 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from src.owo.components import (  # noqa: F401 - registers components
-    energy,
-    health,
-    position,
-    quest,
-    renderable,
-    skills,
-    sleep,
-    thermal,
-    wallet,
-)
 from src.owo.core import registry
 from src.owo.core.validation import ContentValidationError, validate_entity_dict
+
+registry.discover_and_import("src.owo.components")
 
 CONTENT_DIR = Path(__file__).resolve().parent.parent / "content" / "entities"
 

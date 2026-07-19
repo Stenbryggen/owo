@@ -1,0 +1,8 @@
+{
+  "name": "Cart",
+  "components": [
+    {"type": "position", "params": {"x": 950, "y": 900}},
+    {"type": "renderable", "params": {"kind": "cart"}},
+    {"type": "motion", "params": {"speed_bonus": 0.6}}
+  ]
+}

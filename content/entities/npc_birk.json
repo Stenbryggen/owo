@@ -5,6 +5,8 @@
     {"type": "energy", "params": {"current": 80.0, "max_energy": 100.0}},
     {"type": "health", "params": {"current": 100.0, "max_health": 100.0}},
     {"type": "skills", "params": {"levels": {"woodcutting": 5, "mining": 5}, "xp": {"woodcutting": 420.0, "mining": 420.0}}},
-    {"type": "wallet", "params": {"gold": 20.0}}
+    {"type": "wallet", "params": {"gold": 20.0}},
+    {"type": "relationships", "params": {}},
+    {"type": "npc_profile", "params": {"occupation": "Woodcutter"}}
   ]
 }

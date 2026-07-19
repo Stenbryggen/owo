@@ -1,7 +1,10 @@
 from src.owo.components.quest import Quest
+from src.owo.components.relationships import Relationships
 from src.owo.components.skills import Skills
 from src.owo.components.wallet import Wallet
 from src.owo.core.skills import add_xp, skill_efficiency, skill_level
+
+FRIENDSHIP_PER_COOP = 5.0
 
 
 def quest_progress(quest: Quest) -> float:
@@ -95,4 +98,22 @@ def _complete_quest(world, config, events, quest_name: str, quest: Quest) -> Non
         if wallet is not None and gold_awarded:
             wallet.gold += gold_awarded
 
+    if len(quest.contributors) > 1:
+        _bump_friendship(world, quest.contributors.keys())
+
     events.publish("quest_completed", {"quest": quest_name, "contributors": list(quest.contributors)})
+
+
+def _bump_friendship(world, contributor_names) -> None:
+    names = list(contributor_names)
+    for name in names:
+        entity = world.get_entity_by_name(name)
+        relationships = entity.get_component(Relationships) if entity else None
+        if relationships is None:
+            continue
+        for other_name in names:
+            if other_name == name:
+                continue
+            relationships.friendship[other_name] = (
+                relationships.friendship.get(other_name, 0.0) + FRIENDSHIP_PER_COOP
+            )

@@ -23,12 +23,12 @@ class SimulationEngine:
         self.world.current_season = self.config["world"]["seasons"][0]
 
         self.events = EventBus()
+        self.ai_provider = get_provider(self.config)
+
         system_instances = [
             registry.get_system_class(name)() for name in self.config["systems"]["order"]
         ]
-        self.system_manager = SystemManager(system_instances, self.events)
-
-        self.ai_provider = get_provider(self.config.get("ai_provider", "stub"))
+        self.system_manager = SystemManager(system_instances, self.world, self.events, self.ai_provider)
 
         self._load_content(Path(content_dir))
 

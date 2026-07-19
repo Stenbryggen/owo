@@ -41,7 +41,8 @@
     "base_effort_per_hour": 5.0
   },
   "systems": {
-    "order": ["time_season", "energy_drain", "sleep_recovery", "sickness"]
+    "order": ["time_season", "energy_drain", "sleep_recovery", "sickness", "npc_autonomy"]
   },
-  "ai_provider": "stub"
+  "ai_provider": "stub",
+  "n8n_webhook_url": "http://localhost:5678/webhook/owo-ai"
 }

@@ -146,6 +146,15 @@ def _draw_chest(surface, font, x, y, entity):
     surface.blit(label, label.get_rect(center=(x, y - 34)))
 
 
+def _draw_cart(surface, font, x, y, entity):
+    pygame.draw.rect(surface, (120, 80, 45), (x - 28, y - 14, 56, 24))
+    pygame.draw.rect(surface, (70, 45, 25), (x - 28, y - 14, 56, 24), width=2)
+    pygame.draw.circle(surface, (30, 30, 30), (x - 16, y + 14), 10)
+    pygame.draw.circle(surface, (30, 30, 30), (x + 16, y + 14), 10)
+    label = font.render(entity.name, True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 28)))
+
+
 def _draw_generic_prop(surface, font, x, y, entity):
     pygame.draw.rect(surface, (150, 150, 150), (x - 20, y - 20, 40, 40))
     label = font.render(entity.name, True, (15, 15, 15))
@@ -178,6 +187,7 @@ _PROP_DRAWERS = {
     "quest_board": _draw_quest_board,
     "chest": _draw_chest,
     "quest_marker": _draw_quest_marker,
+    "cart": _draw_cart,
 }
 
 
@@ -214,7 +224,7 @@ def _draw_hud(surface, hud_font, world, config, paused: bool, time_scale: float)
         f"Season: {world.current_season}  (Day {world.day_count})  {night_label}",
         f"Time: {_format_time(world.current_time)}    Speed: {time_scale:g}x"
         + ("  [PAUSED]" if paused else ""),
-        "WASD/arrows=move  E=work quest  SPACE=pause  +/-=speed  ESC=quit",
+        "WASD/arrows=move  E=work quest  SPACE=pause  +/-=speed  F5=save F9=load  ESC=quit",
     ]
     for i, text in enumerate(lines):
         label = hud_font.render(text, True, (15, 15, 15))

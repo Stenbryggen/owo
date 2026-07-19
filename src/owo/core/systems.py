@@ -7,8 +7,10 @@ from src.owo.core.events import EventBus
 class System:
     required_components: Tuple[Type[Component], ...] = ()
 
-    def setup(self, events: EventBus) -> None:
-        """Called once before the first update(); override to subscribe to events."""
+    def setup(self, world: World, events: EventBus, ai_provider) -> None:
+        """Called once before the first update(); override to subscribe to
+        events or stash world/ai_provider for event handlers that fire
+        outside the regular per-tick update() (e.g. NpcAutonomySystem)."""
         pass
 
     def update(self, world: World, config: dict, events: EventBus, dt: float) -> None:
@@ -16,11 +18,11 @@ class System:
 
 
 class SystemManager:
-    def __init__(self, systems: List[System], events: EventBus):
+    def __init__(self, systems: List[System], world: World, events: EventBus, ai_provider):
         self._systems = systems
         self._events = events
         for system in self._systems:
-            system.setup(self._events)
+            system.setup(world, events, ai_provider)
 
     def update(self, world: World, config: dict, dt: float) -> None:
         for system in self._systems:
