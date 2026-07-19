@@ -23,6 +23,11 @@ DEFAULT_DB_PATH = REPO_ROOT / "src" / "data" / "saves" / "world.db"
 TICK_HZ = 15
 DAY_LENGTH_REAL_SECONDS = 15 * 60  # a full in-game day takes 15 real minutes
 HOURS_PER_SECOND = 24.0 / DAY_LENGTH_REAL_SECONDS
+# Player actions (quest work, harvesting) are deliberately NOT tied to that
+# slow environmental pace - chopping a tree should feel like a real-time
+# action (a few seconds), not scale with how long a day happens to last.
+# This is the rate quest/harvest yields were tuned and tested against.
+ACTION_HOURS_PER_SECOND = 0.5
 PLAYER_SPEED = 260.0
 FILL_COOLDOWN = 0.2
 PLANT_COOLDOWN = 0.5
@@ -222,6 +227,7 @@ class GameServer:
     def _tick_loop(self) -> None:
         dt_real = 1.0 / TICK_HZ
         dt_hours = dt_real * HOURS_PER_SECOND
+        action_dt_hours = dt_real * ACTION_HOURS_PER_SECOND
         time_since_save = 0.0
 
         while not self._stop_event.is_set():
@@ -245,11 +251,11 @@ class GameServer:
                     if session.work:
                         quest = find_interactable_quest(self.engine.world, pos)
                         if quest is not None:
-                            self.engine.perform_work(name, quest.name, dt_hours)
+                            self.engine.perform_work(name, quest.name, action_dt_hours)
                         else:
                             resource = find_interactable_resource(self.engine.world, pos)
                             if resource is not None:
-                                self.engine.perform_harvest(name, resource.name, dt_hours)
+                                self.engine.perform_harvest(name, resource.name, action_dt_hours)
 
                     session.fill_timer -= dt_real
                     if session.fill and session.fill_timer <= 0:

@@ -68,3 +68,11 @@ def test_season_changes_after_thirty_days():
 
     assert engine.day_count == 30
     assert engine.current_season == "Summer"
+
+
+def test_fresh_engines_get_different_random_worldgen_seeds():
+    engine_a = build_engine()
+    engine_b = build_engine()
+
+    assert engine_a.world.worldgen_seed is not None
+    assert engine_a.world.worldgen_seed != engine_b.world.worldgen_seed

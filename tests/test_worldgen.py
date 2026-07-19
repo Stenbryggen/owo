@@ -1,7 +1,7 @@
 from src.owo.components import harvestable, position, renderable  # noqa: F401 - registers components
 from src.owo.core.ecs import World
 from src.owo.core.terrain import Terrain
-from src.owo.core.worldgen import chunk_of, ensure_chunks_loaded, generate_chunk
+from src.owo.core.worldgen import SEA_REGION_CHUNKS, _is_sea_chunk, chunk_of, ensure_chunks_loaded, generate_chunk
 
 
 def _make_world():
@@ -66,3 +66,35 @@ def test_ensure_chunks_loaded_expands_as_player_moves_far_away():
     ensure_chunks_loaded(world, player_x=100_000, player_y=100_000, radius_chunks=1, base_seed=7)
 
     assert world.loaded_chunks - loaded_near_origin  # new chunks were generated far away
+
+
+def test_sea_chunk_is_entirely_water_and_has_no_resources():
+    seed = None
+    for candidate in range(200):
+        cx = candidate * SEA_REGION_CHUNKS
+        if _is_sea_chunk(1, cx, 0):
+            seed, chunk_x = 1, cx
+            break
+    assert seed is not None, "expected at least one sea chunk within the search range"
+
+    world = _make_world()
+    generate_chunk(world, chunk_x, 0, base_seed=1)
+
+    assert world.entities == {}
+    assert all(t == "water" for t in world.terrain.tiles.values())
+
+
+def test_sea_chunks_are_deterministic_for_the_same_seed():
+    assert _is_sea_chunk(99, 40, 40) == _is_sea_chunk(99, 40, 40)
+
+
+def test_whole_sea_region_shares_the_same_sea_status():
+    # Every chunk in the same SEA_REGION_CHUNKS x SEA_REGION_CHUNKS block
+    # must agree - a sea can't have holes at chunk region boundaries.
+    base_x, base_y = 3 * SEA_REGION_CHUNKS, 5 * SEA_REGION_CHUNKS
+    statuses = {
+        _is_sea_chunk(7, base_x + dx, base_y + dy)
+        for dx in range(SEA_REGION_CHUNKS)
+        for dy in range(SEA_REGION_CHUNKS)
+    }
+    assert len(statuses) == 1

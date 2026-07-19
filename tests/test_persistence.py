@@ -93,3 +93,17 @@ def test_saving_the_same_slot_again_overwrites_it(tmp_path):
     save_world(world, str(db_path))
 
     assert load_world(str(db_path)).current_season == "Autumn"
+
+
+def test_worldgen_seed_and_loaded_chunks_round_trip(tmp_path):
+    world = World()
+    world.current_season = "Spring"
+    world.worldgen_seed = 424242
+    world.loaded_chunks = {(0, 0), (1, -2)}
+
+    db_path = tmp_path / "world.db"
+    save_world(world, str(db_path))
+
+    reloaded = load_world(str(db_path))
+    assert reloaded.worldgen_seed == 424242
+    assert reloaded.loaded_chunks == {(0, 0), (1, -2)}

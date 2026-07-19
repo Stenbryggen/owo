@@ -14,6 +14,7 @@ from src.owo.components.wallet import Wallet
 from src.owo.core.interaction import find_interactable_quest, find_interactable_resource
 from src.owo.core.terrain import TILE_SIZE, world_to_tile
 from src.owo.core.work import quest_progress
+from src.owo.core.worldgen import CHUNK_SIZE, chunk_of
 
 DEFAULT_SCREEN_SIZE = (1600, 900)  # just the initial window size - it's resizable, see play.py
 
@@ -414,11 +415,64 @@ def _draw_plant_hint(surface, hud_font, world, player, player_pos):
     surface.blit(label, (x, y))
 
 
+MAP_TILE_COLORS = {
+    "water": (58, 122, 190),
+    "dirt": (122, 92, 56),
+}
+MAP_DEFAULT_COLOR = (86, 140, 74)
+
+
+def _draw_map_overlay(surface, hud_font, world, player_pos):
+    """Only ever draws world.loaded_chunks - chunks the procedural
+    generator has actually filled in because a player got near them.
+    Undiscovered land is generated on demand (core/worldgen.py) and simply
+    isn't in that set yet, so it isn't drawn here either."""
+    if player_pos is None:
+        return
+
+    width, height = surface.get_size()
+    panel_w, panel_h = int(width * 0.8), int(height * 0.8)
+    x0, y0 = (width - panel_w) // 2, (height - panel_h) // 2
+
+    panel = pygame.Surface((panel_w, panel_h))
+    panel.set_alpha(235)
+    panel.fill((20, 20, 20))
+    surface.blit(panel, (x0, y0))
+
+    title = hud_font.render(
+        f"Explored map - {len(world.loaded_chunks)} chunks discovered (M to close)",
+        True, (255, 255, 255),
+    )
+    surface.blit(title, (x0 + 12, y0 + 10))
+
+    if not world.loaded_chunks:
+        return
+
+    cell = 12
+    cx, cy = x0 + panel_w // 2, y0 + panel_h // 2 + 20
+    player_chunk = chunk_of(*world_to_tile(player_pos.x, player_pos.y), CHUNK_SIZE)
+
+    for (chx, chy) in world.loaded_chunks:
+        dx, dy = chx - player_chunk[0], chy - player_chunk[1]
+        px, py = cx + dx * cell, cy + dy * cell
+        if not (x0 <= px <= x0 + panel_w - cell and y0 + 40 <= py <= y0 + panel_h - cell):
+            continue
+
+        sample_col = chx * CHUNK_SIZE + CHUNK_SIZE // 2
+        sample_row = chy * CHUNK_SIZE + CHUNK_SIZE // 2
+        tile_type = world.terrain.get(sample_col, sample_row) if world.terrain else "grass"
+        color = MAP_TILE_COLORS.get(tile_type, MAP_DEFAULT_COLOR)
+        pygame.draw.rect(surface, color, (px, py, cell - 1, cell - 1))
+
+    pygame.draw.circle(surface, (230, 60, 60), (cx, cy), 5)
+    pygame.draw.circle(surface, (255, 255, 255), (cx, cy), 5, width=1)
+
+
 def draw_world(
     surface, font, hud_font, world, config,
     paused: bool = False, time_scale: float = 1.0,
     player_name: str = "Player1", controls_hint=DEFAULT_CONTROLS_HINT,
-    show_help: bool = True,
+    show_help: bool = True, show_map: bool = False,
 ):
     player = world.get_entity_by_name(player_name)
     player_pos = player.get_component(Position) if player else None
@@ -456,3 +510,6 @@ def draw_world(
         _draw_harvest_hint(surface, hud_font, find_interactable_resource(world, player_pos))
     _draw_fill_hint(surface, hud_font, world, player_pos)
     _draw_plant_hint(surface, hud_font, world, player, player_pos)
+
+    if show_map:
+        _draw_map_overlay(surface, hud_font, world, player_pos)

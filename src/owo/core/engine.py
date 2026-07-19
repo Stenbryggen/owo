@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from pathlib import Path
 from typing import Optional
 
@@ -61,12 +62,19 @@ class SimulationEngine:
             for cy in range(-starting_radius, starting_radius + 1):
                 self.world.loaded_chunks.add((cx, cy))
 
+        # A new world gets a random seed (a different world every game);
+        # config can still pin one down for reproducible testing. A world
+        # loaded from a save overwrites this via World.reset_from(), so
+        # exploring further after a reload keeps using the seed that
+        # world's already-generated chunks were made with.
+        self.world.worldgen_seed = worldgen_config.get("seed") or random.randint(0, 2**31 - 1)
+
     def ensure_chunks_loaded(self, x: float, y: float) -> None:
         worldgen_config = self.config.get("worldgen", {})
         ensure_chunks_loaded(
             self.world, x, y,
             radius_chunks=worldgen_config.get("load_radius_chunks", 2),
-            base_seed=worldgen_config.get("seed", 0),
+            base_seed=self.world.worldgen_seed,
             chunk_size=worldgen_config.get("chunk_size", 16),
         )
 

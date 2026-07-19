@@ -1,7 +1,7 @@
 {
   "name": "QuestClearRocks",
   "components": [
-    {"type": "position", "params": {"x": 1750, "y": 1050}},
+    {"type": "position", "params": {"x": 1900, "y": 1250}},
     {"type": "renderable", "params": {"kind": "quest_marker"}},
     {
       "type": "quest",

@@ -17,6 +17,7 @@ CONTROLS_HINT = [
     "2 = craft pickaxe",
     "F5 = save    F9 = load",
     "H = toggle this help",
+    "M = toggle map",
     "ESC = quit",
 ]
 
@@ -53,6 +54,7 @@ def run(host: str | None, port: int, name: str) -> None:
     font = pygame.font.SysFont(None, 32)
     hud_font = pygame.font.SysFont(None, 36)
     show_help = True
+    show_map = False
 
     local_server = None
     if host is None:
@@ -83,6 +85,8 @@ def run(host: str | None, port: int, name: str) -> None:
                     client.send_craft("pickaxe")
                 elif event.key == pygame.K_h:
                     show_help = not show_help
+                elif event.key == pygame.K_m:
+                    show_map = not show_map
 
         keys = pygame.key.get_pressed()
         dx, dy = _movement_input()
@@ -100,7 +104,7 @@ def run(host: str | None, port: int, name: str) -> None:
             renderer.draw_world(
                 screen, font, hud_font, world, client.config,
                 player_name=client.player_name, controls_hint=CONTROLS_HINT,
-                show_help=show_help,
+                show_help=show_help, show_map=show_map,
             )
             pygame.display.flip()
 

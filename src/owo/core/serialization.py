@@ -57,6 +57,7 @@ def world_to_dict(world: World) -> dict:
         "current_season": world.current_season,
         "terrain": terrain_to_dict(world.terrain) if world.terrain else None,
         "loaded_chunks": [list(chunk) for chunk in world.loaded_chunks],
+        "worldgen_seed": world.worldgen_seed,
         "entities": [entity_to_dict(entity) for entity in world.entities.values()],
     }
 
@@ -69,6 +70,7 @@ def world_from_dict(data: dict) -> World:
     if data.get("terrain"):
         world.terrain = terrain_from_dict(data["terrain"])
     world.loaded_chunks = {tuple(chunk) for chunk in data.get("loaded_chunks", [])}
+    world.worldgen_seed = data.get("worldgen_seed")
     for entity_data in data.get("entities", []):
         entity_from_dict(entity_data, world)
     return world

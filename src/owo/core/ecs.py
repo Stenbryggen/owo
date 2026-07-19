@@ -39,6 +39,11 @@ class World:
         # infinite world doesn't regenerate (and re-scatter resources into)
         # the same area twice.
         self.loaded_chunks: set = set()
+        # Set once (randomly, unless config overrides it) by the engine on
+        # a fresh world and persisted from then on, so exploring further
+        # after a reload keeps generating the same world it always would
+        # have - only a brand new game gets a new random seed.
+        self.worldgen_seed = None
 
     def reset_from(self, other: "World") -> None:
         """Copies another World's data into this one in place, instead of
@@ -54,6 +59,7 @@ class World:
         self.current_season = other.current_season
         self.terrain = other.terrain
         self.loaded_chunks = other.loaded_chunks
+        self.worldgen_seed = other.worldgen_seed
 
     def create_entity(self, name: str = None) -> Entity:
         entity = Entity(name)

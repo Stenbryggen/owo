@@ -47,7 +47,7 @@
     "lake_island_radius_tiles": 1
   },
   "worldgen": {
-    "seed": 1337,
+    "seed": null,
     "chunk_size": 16,
     "load_radius_chunks": 2,
     "starting_chunk_radius": 2
