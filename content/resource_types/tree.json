@@ -1,0 +1,19 @@
+{
+  "name": "tree",
+  "renderable_kind": "tree",
+  "resource_type": "wood",
+  "max_amount": 6.0,
+  "required_tool": "axe",
+  "on_depleted": "remove",
+  "growth": {
+    "enabled": true,
+    "sapling_kind": "sapling",
+    "mature_at_days": 3,
+    "reproduction_chance": 0.15
+  },
+  "worldgen": {
+    "enabled": true,
+    "count_min": 2,
+    "count_max": 6
+  }
+}

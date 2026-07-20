@@ -1,12 +1,24 @@
+from pathlib import Path
+
 from src.owo.components.energy import Energy
 from src.owo.components.inventory import Inventory
 from src.owo.core.eating import perform_eat
 from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
+from src.owo.core.resource_types import load_resource_types
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RESOURCE_TYPES_DIR = REPO_ROOT / "content" / "resource_types"
+
+
+def _make_world():
+    world = World()
+    world.resource_types = load_resource_types(str(RESOURCE_TYPES_DIR))
+    return world
 
 
 def test_eating_restores_energy_and_consumes_one_food():
-    world = World()
+    world = _make_world()
     events = EventBus()
     actor = world.create_entity("Actor")
     actor.add_component(Energy(current=50.0, max_energy=100.0))
@@ -19,7 +31,7 @@ def test_eating_restores_energy_and_consumes_one_food():
 
 
 def test_eating_picks_the_most_restorative_food_available():
-    world = World()
+    world = _make_world()
     events = EventBus()
     actor = world.create_entity("Actor")
     actor.add_component(Energy(current=50.0, max_energy=100.0))
@@ -33,7 +45,7 @@ def test_eating_picks_the_most_restorative_food_available():
 
 
 def test_eating_caps_at_max_energy():
-    world = World()
+    world = _make_world()
     events = EventBus()
     actor = world.create_entity("Actor")
     actor.add_component(Energy(current=95.0, max_energy=100.0))
@@ -45,7 +57,7 @@ def test_eating_caps_at_max_energy():
 
 
 def test_eating_with_no_food_fails():
-    world = World()
+    world = _make_world()
     events = EventBus()
     actor = world.create_entity("Actor")
     actor.add_component(Energy(current=50.0, max_energy=100.0))
@@ -56,7 +68,7 @@ def test_eating_with_no_food_fails():
 
 
 def test_eating_publishes_food_eaten_event():
-    world = World()
+    world = _make_world()
     events = EventBus()
     fired = []
     events.subscribe("food_eaten", lambda p: fired.append(p))

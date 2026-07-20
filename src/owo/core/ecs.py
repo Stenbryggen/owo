@@ -44,6 +44,12 @@ class World:
         # after a reload keeps generating the same world it always would
         # have - only a brand new game gets a new random seed.
         self.worldgen_seed = None
+        # Static content (like the engine's self.recipes), not save-data:
+        # loaded once by the engine and never touched by reset_from(), so a
+        # reload doesn't wipe it. Lives on World (not the engine) because
+        # systems like TreeGrowthSystem only ever see `world`, never the
+        # engine itself.
+        self.resource_types: dict = {}
 
     def reset_from(self, other: "World") -> None:
         """Copies another World's data into this one in place, instead of

@@ -1,0 +1,15 @@
+{
+  "name": "fishing_spot",
+  "renderable_kind": "fishing_spot",
+  "resource_type": "fish",
+  "max_amount": 8.0,
+  "regen_per_hour": 0.6,
+  "on_depleted": "regen",
+  "depleted_kind": "empty_bush",
+  "food_energy": 20.0,
+  "worldgen": {
+    "enabled": true,
+    "chance": 0.5,
+    "requires_lake": true
+  }
+}

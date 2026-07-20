@@ -5,121 +5,44 @@ from src.owo.components.harvestable import Harvestable
 from src.owo.components.motion import Motion
 from src.owo.components.position import Position
 from src.owo.components.renderable import Renderable
+from src.owo.core.resource_types import ResourceType
 
 # Structure kinds that also grant an aura effect (see core/movement.py) once
 # placed, keyed by kind -> speed_bonus. A crafted cart works the same as
 # the hand-placed starting one.
 STRUCTURE_SPEED_BONUS = {"cart": 0.6}
 
-TREE_MAX_WOOD = 6.0
-MINE_MAX_STONE = 20.0
-MINE_REGEN_PER_HOUR = 0.5
-ORE_MINE_MAX_IRON = 12.0
-ORE_MINE_REGEN_PER_HOUR = 0.3
-BUSH_MAX_FIBER = 3.0
-BUSH_REGEN_PER_HOUR = 1.0
-BERRY_BUSH_MAX_BERRIES = 4.0
-BERRY_BUSH_REGEN_PER_HOUR = 1.0
-FISHING_SPOT_MAX_FISH = 8.0
-FISHING_SPOT_REGEN_PER_HOUR = 0.6
 
-
-def spawn_tree(world, x: float, y: float, mature: bool = True):
-    entity = world.create_entity(f"Tree_{uuid.uuid4().hex[:8]}")
+def spawn_resource(world, x: float, y: float, resource_type: ResourceType, mature: bool = True):
+    """Builds one harvestable entity from a ResourceType (see
+    core/resource_types.py) - the one generic constructor every world-
+    generated or content-placed resource (tree, mine, bush, ...) goes
+    through, so a brand new resource type never needs a new Python
+    function, only a new content/resource_types/*.json file."""
+    entity = world.create_entity(f"{resource_type.name.title().replace('_', '')}_{uuid.uuid4().hex[:8]}")
     entity.add_component(Position(x=x, y=y))
-    entity.add_component(Renderable(kind="tree" if mature else "sapling"))
-    entity.add_component(Growth(
-        stage="mature" if mature else "sapling",
-        age_days=0, mature_at_days=3, reproduction_chance=0.15,
-    ))
+
+    growth = resource_type.growth
+    kind = resource_type.renderable_kind if (mature or not growth.enabled) else growth.sapling_kind
+    entity.add_component(Renderable(kind=kind))
+
+    if growth.enabled:
+        entity.add_component(Growth(
+            stage="mature" if mature else "sapling",
+            age_days=0,
+            mature_at_days=growth.mature_at_days,
+            reproduction_chance=growth.reproduction_chance,
+        ))
+
     entity.add_component(Harvestable(
-        resource_type="wood",
-        amount=TREE_MAX_WOOD if mature else 0.0,
-        max_amount=TREE_MAX_WOOD,
-        required_tool="axe",
-        on_depleted="remove",
-    ))
-    return entity
-
-
-def spawn_mine(world, x: float, y: float):
-    entity = world.create_entity(f"Mine_{uuid.uuid4().hex[:8]}")
-    entity.add_component(Position(x=x, y=y))
-    entity.add_component(Renderable(kind="mine"))
-    entity.add_component(Harvestable(
-        resource_type="stone",
-        amount=MINE_MAX_STONE,
-        max_amount=MINE_MAX_STONE,
-        regen_per_hour=MINE_REGEN_PER_HOUR,
-        required_tool="pickaxe",
-        on_depleted="regen",
-        depleted_kind="empty_mine",
-        full_kind="mine",
-    ))
-    return entity
-
-
-def spawn_ore_mine(world, x: float, y: float):
-    entity = world.create_entity(f"OreMine_{uuid.uuid4().hex[:8]}")
-    entity.add_component(Position(x=x, y=y))
-    entity.add_component(Renderable(kind="ore_mine"))
-    entity.add_component(Harvestable(
-        resource_type="iron",
-        amount=ORE_MINE_MAX_IRON,
-        max_amount=ORE_MINE_MAX_IRON,
-        regen_per_hour=ORE_MINE_REGEN_PER_HOUR,
-        required_tool="pickaxe",
-        on_depleted="regen",
-        depleted_kind="empty_mine",
-        full_kind="ore_mine",
-    ))
-    return entity
-
-
-def spawn_bush(world, x: float, y: float):
-    entity = world.create_entity(f"Bush_{uuid.uuid4().hex[:8]}")
-    entity.add_component(Position(x=x, y=y))
-    entity.add_component(Renderable(kind="bush"))
-    entity.add_component(Harvestable(
-        resource_type="fiber",
-        amount=BUSH_MAX_FIBER,
-        max_amount=BUSH_MAX_FIBER,
-        regen_per_hour=BUSH_REGEN_PER_HOUR,
-        on_depleted="regen",
-        depleted_kind="empty_bush",
-        full_kind="bush",
-    ))
-    return entity
-
-
-def spawn_berry_bush(world, x: float, y: float):
-    entity = world.create_entity(f"BerryBush_{uuid.uuid4().hex[:8]}")
-    entity.add_component(Position(x=x, y=y))
-    entity.add_component(Renderable(kind="berry_bush"))
-    entity.add_component(Harvestable(
-        resource_type="berries",
-        amount=BERRY_BUSH_MAX_BERRIES,
-        max_amount=BERRY_BUSH_MAX_BERRIES,
-        regen_per_hour=BERRY_BUSH_REGEN_PER_HOUR,
-        on_depleted="regen",
-        depleted_kind="empty_bush",
-        full_kind="berry_bush",
-    ))
-    return entity
-
-
-def spawn_fishing_spot(world, x: float, y: float):
-    entity = world.create_entity(f"FishingSpot_{uuid.uuid4().hex[:8]}")
-    entity.add_component(Position(x=x, y=y))
-    entity.add_component(Renderable(kind="fishing_spot"))
-    entity.add_component(Harvestable(
-        resource_type="fish",
-        amount=FISHING_SPOT_MAX_FISH,
-        max_amount=FISHING_SPOT_MAX_FISH,
-        regen_per_hour=FISHING_SPOT_REGEN_PER_HOUR,
-        on_depleted="regen",
-        depleted_kind="empty_bush",
-        full_kind="fishing_spot",
+        resource_type=resource_type.resource_type,
+        amount=resource_type.max_amount if mature else 0.0,
+        max_amount=resource_type.max_amount,
+        regen_per_hour=resource_type.regen_per_hour,
+        required_tool=resource_type.required_tool,
+        on_depleted=resource_type.on_depleted,
+        depleted_kind=resource_type.depleted_kind,
+        full_kind=resource_type.renderable_kind,
     ))
     return entity
 

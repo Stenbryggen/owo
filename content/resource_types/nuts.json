@@ -1,0 +1,10 @@
+{
+  "name": "nuts",
+  "renderable_kind": "nuts",
+  "resource_type": "nuts",
+  "max_amount": 1.0,
+  "food_energy": 12.0,
+  "worldgen": {
+    "enabled": false
+  }
+}

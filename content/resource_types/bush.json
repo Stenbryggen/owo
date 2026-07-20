@@ -1,0 +1,14 @@
+{
+  "name": "bush",
+  "renderable_kind": "bush",
+  "resource_type": "fiber",
+  "max_amount": 3.0,
+  "regen_per_hour": 1.0,
+  "on_depleted": "regen",
+  "depleted_kind": "empty_bush",
+  "worldgen": {
+    "enabled": true,
+    "count_min": 0,
+    "count_max": 3
+  }
+}

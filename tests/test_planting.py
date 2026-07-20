@@ -1,13 +1,25 @@
+from pathlib import Path
+
 from src.owo.components.growth import Growth
 from src.owo.components.inventory import Inventory
 from src.owo.components.position import Position
 from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
 from src.owo.core.planting import perform_plant
+from src.owo.core.resource_types import load_resource_types
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RESOURCE_TYPES_DIR = REPO_ROOT / "content" / "resource_types"
+
+
+def _make_world():
+    world = World()
+    world.resource_types = load_resource_types(str(RESOURCE_TYPES_DIR))
+    return world
 
 
 def test_planting_consumes_a_seed_and_spawns_a_sapling():
-    world = World()
+    world = _make_world()
     events = EventBus()
     actor = world.create_entity("Actor")
     actor.add_component(Position(x=500, y=500))
@@ -23,7 +35,7 @@ def test_planting_consumes_a_seed_and_spawns_a_sapling():
 
 
 def test_planting_without_a_seed_fails():
-    world = World()
+    world = _make_world()
     events = EventBus()
     actor = world.create_entity("Actor")
     actor.add_component(Position(x=0, y=0))

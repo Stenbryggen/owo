@@ -1,10 +1,22 @@
+from pathlib import Path
+
 from src.owo.components.growth import Growth
 from src.owo.components.harvestable import Harvestable
 from src.owo.components.position import Position
 from src.owo.components.renderable import Renderable
 from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
+from src.owo.core.resource_types import load_resource_types
 from src.owo.systems.tree_growth import TreeGrowthSystem
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RESOURCE_TYPES_DIR = REPO_ROOT / "content" / "resource_types"
+
+
+def _make_world():
+    world = World()
+    world.resource_types = load_resource_types(str(RESOURCE_TYPES_DIR))
+    return world
 
 
 def _make_system(world):
@@ -14,7 +26,7 @@ def _make_system(world):
 
 
 def test_sapling_matures_after_enough_days():
-    world = World()
+    world = _make_world()
     sapling = world.create_entity("Sapling")
     sapling.add_component(Position(x=0, y=0))
     sapling.add_component(Renderable(kind="sapling"))
@@ -32,7 +44,7 @@ def test_sapling_matures_after_enough_days():
 
 
 def test_sapling_not_yet_mature_stays_a_sapling():
-    world = World()
+    world = _make_world()
     sapling = world.create_entity("Sapling")
     sapling.add_component(Position(x=0, y=0))
     sapling.add_component(Renderable(kind="sapling"))
@@ -45,10 +57,11 @@ def test_sapling_not_yet_mature_stays_a_sapling():
 
 
 def test_mature_tree_always_reproduces_when_chance_is_certain():
-    world = World()
+    world = _make_world()
     tree = world.create_entity("Tree")
     tree.add_component(Position(x=1000, y=1000))
     tree.add_component(Growth(stage="mature", reproduction_chance=1.0))
+    tree.add_component(Harvestable(resource_type="wood", amount=6.0, max_amount=6.0, on_depleted="remove"))
 
     system = _make_system(world)
     system._on_new_day({"day": 1})
@@ -59,10 +72,11 @@ def test_mature_tree_always_reproduces_when_chance_is_certain():
 
 
 def test_mature_tree_never_reproduces_when_chance_is_zero():
-    world = World()
+    world = _make_world()
     tree = world.create_entity("Tree")
     tree.add_component(Position(x=1000, y=1000))
     tree.add_component(Growth(stage="mature", reproduction_chance=0.0))
+    tree.add_component(Harvestable(resource_type="wood", amount=6.0, max_amount=6.0, on_depleted="remove"))
 
     system = _make_system(world)
     for day in range(1, 11):

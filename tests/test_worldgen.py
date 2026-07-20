@@ -1,12 +1,20 @@
+from pathlib import Path
+
 from src.owo.components import harvestable, position, renderable  # noqa: F401 - registers components
 from src.owo.core.ecs import World
+from src.owo.core.resource_types import load_resource_types
 from src.owo.core.terrain import Terrain
 from src.owo.core.worldgen import SEA_REGION_CHUNKS, _is_sea_chunk, chunk_of, ensure_chunks_loaded, generate_chunk
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RESOURCE_TYPES_DIR = REPO_ROOT / "content" / "resource_types"
+_RESOURCE_TYPES = load_resource_types(str(RESOURCE_TYPES_DIR))
 
 
 def _make_world():
     world = World()
     world.terrain = Terrain()
+    world.resource_types = _RESOURCE_TYPES
     return world
 
 

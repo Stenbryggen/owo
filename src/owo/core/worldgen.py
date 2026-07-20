@@ -2,25 +2,12 @@ import hashlib
 import random
 from typing import Tuple
 
-from src.owo.core.resource_spawning import (
-    spawn_berry_bush,
-    spawn_bush,
-    spawn_fishing_spot,
-    spawn_mine,
-    spawn_ore_mine,
-    spawn_tree,
-)
+from src.owo.core.resource_spawning import spawn_resource
 from src.owo.core.terrain import TILE_SIZE, carve_lake_with_island, world_to_tile
 
 CHUNK_SIZE = 16  # tiles per chunk side
 
 LAKE_CHANCE = 0.25
-FISHING_SPOT_CHANCE = 0.5  # conditional on this chunk having a lake
-TREE_COUNT_RANGE = (2, 6)
-MINE_CHANCE = 0.5
-ORE_MINE_CHANCE = 0.15
-BUSH_COUNT_RANGE = (0, 3)
-BERRY_BUSH_COUNT_RANGE = (0, 2)
 
 # Sea: a much bigger, contiguous body of water spanning a whole region of
 # chunks, distinct from the small in-chunk lakes above. Regions are a
@@ -53,10 +40,28 @@ def _chunk_seed(base_seed: int, chunk_x: int, chunk_y: int) -> int:
     return int.from_bytes(digest[:8], "big")
 
 
+def _scatter(world, rng, resource_type, origin_col, origin_row, chunk_size) -> None:
+    wg = resource_type.worldgen
+    if wg.count_max > 0:
+        for _ in range(rng.randint(wg.count_min, wg.count_max)):
+            col = origin_col + rng.randint(0, chunk_size - 1)
+            row = origin_row + rng.randint(0, chunk_size - 1)
+            if world.terrain.get(col, row) != world.terrain.default:
+                continue
+            spawn_resource(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2, resource_type)
+    elif wg.chance > 0 and rng.random() < wg.chance:
+        col = origin_col + rng.randint(0, chunk_size - 1)
+        row = origin_row + rng.randint(0, chunk_size - 1)
+        if world.terrain.get(col, row) == world.terrain.default:
+            spawn_resource(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2, resource_type)
+
+
 def generate_chunk(world, chunk_x: int, chunk_y: int, base_seed: int = 0, chunk_size: int = CHUNK_SIZE) -> None:
-    """Fills terrain and scatters resource entities for one chunk. Callers
-    should check world.loaded_chunks first - calling this twice for the
-    same chunk would scatter resources twice."""
+    """Fills terrain and scatters resource entities for one chunk, driven
+    entirely by world.resource_types (see core/resource_types.py) - a new
+    resource type is picked up here automatically once it's loaded, no
+    code change needed. Callers should check world.loaded_chunks first -
+    calling this twice for the same chunk would scatter resources twice."""
     origin_col = chunk_x * chunk_size
     origin_row = chunk_y * chunk_size
 
@@ -68,52 +73,30 @@ def generate_chunk(world, chunk_x: int, chunk_y: int, base_seed: int = 0, chunk_
 
     rng = random.Random(_chunk_seed(base_seed, chunk_x, chunk_y))
 
+    lake_col = lake_row = lake_radius = None
     if rng.random() < LAKE_CHANCE:
         lake_col = origin_col + rng.randint(3, chunk_size - 4)
         lake_row = origin_row + rng.randint(3, chunk_size - 4)
         lake_radius = rng.randint(2, 3)
         carve_lake_with_island(world.terrain, lake_col, lake_row, lake_radius, 1)
 
-        if rng.random() < FISHING_SPOT_CHANCE:
-            shore_col = lake_col + lake_radius + 1
-            shore_row = lake_row
+    for resource_type in world.resource_types.values():
+        wg = resource_type.worldgen
+        if not wg.enabled:
+            continue
+
+        if wg.requires_lake:
+            if lake_col is None or rng.random() >= wg.chance:
+                continue
+            shore_col, shore_row = lake_col + lake_radius + 1, lake_row
             if world.terrain.get(shore_col, shore_row) == world.terrain.default:
-                spawn_fishing_spot(
-                    world, shore_col * TILE_SIZE + TILE_SIZE // 2, shore_row * TILE_SIZE + TILE_SIZE // 2
+                spawn_resource(
+                    world, shore_col * TILE_SIZE + TILE_SIZE // 2, shore_row * TILE_SIZE + TILE_SIZE // 2,
+                    resource_type,
                 )
-
-    for _ in range(rng.randint(*TREE_COUNT_RANGE)):
-        col = origin_col + rng.randint(0, chunk_size - 1)
-        row = origin_row + rng.randint(0, chunk_size - 1)
-        if world.terrain.get(col, row) != world.terrain.default:
             continue
-        spawn_tree(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2, mature=True)
 
-    if rng.random() < MINE_CHANCE:
-        col = origin_col + rng.randint(0, chunk_size - 1)
-        row = origin_row + rng.randint(0, chunk_size - 1)
-        if world.terrain.get(col, row) == world.terrain.default:
-            spawn_mine(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
-
-    if rng.random() < ORE_MINE_CHANCE:
-        col = origin_col + rng.randint(0, chunk_size - 1)
-        row = origin_row + rng.randint(0, chunk_size - 1)
-        if world.terrain.get(col, row) == world.terrain.default:
-            spawn_ore_mine(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
-
-    for _ in range(rng.randint(*BUSH_COUNT_RANGE)):
-        col = origin_col + rng.randint(0, chunk_size - 1)
-        row = origin_row + rng.randint(0, chunk_size - 1)
-        if world.terrain.get(col, row) != world.terrain.default:
-            continue
-        spawn_bush(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
-
-    for _ in range(rng.randint(*BERRY_BUSH_COUNT_RANGE)):
-        col = origin_col + rng.randint(0, chunk_size - 1)
-        row = origin_row + rng.randint(0, chunk_size - 1)
-        if world.terrain.get(col, row) != world.terrain.default:
-            continue
-        spawn_berry_bush(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
+        _scatter(world, rng, resource_type, origin_col, origin_row, chunk_size)
 
 
 def ensure_chunks_loaded(

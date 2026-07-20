@@ -1,0 +1,15 @@
+{
+  "name": "berry_bush",
+  "renderable_kind": "berry_bush",
+  "resource_type": "berries",
+  "max_amount": 4.0,
+  "regen_per_hour": 1.0,
+  "on_depleted": "regen",
+  "depleted_kind": "empty_bush",
+  "food_energy": 8.0,
+  "worldgen": {
+    "enabled": true,
+    "count_min": 0,
+    "count_max": 2
+  }
+}

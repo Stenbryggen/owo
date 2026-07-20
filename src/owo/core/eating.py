@@ -1,18 +1,11 @@
 from src.owo.components.energy import Energy
 from src.owo.components.inventory import Inventory
 
-# Energy restored per unit eaten, roughly proportional to how much effort
-# each food takes to get (berries are quick to gather, fish takes longest).
-FOOD_ENERGY = {
-    "berries": 8.0,
-    "nuts": 12.0,
-    "fish": 20.0,
-}
-
 
 def perform_eat(world, events, actor_name: str) -> bool:
-    """Eats one unit of whichever known food the actor is carrying that
-    restores the most energy. Returns whether anything was eaten."""
+    """Eats one unit of whichever known food (any ResourceType with
+    food_energy set - see core/resource_types.py) the actor is carrying
+    that restores the most energy. Returns whether anything was eaten."""
     actor = world.get_entity_by_name(actor_name)
     if actor is None:
         return False
@@ -23,8 +16,9 @@ def perform_eat(world, events, actor_name: str) -> bool:
         return False
 
     available = [
-        (food, restore) for food, restore in FOOD_ENERGY.items()
-        if inventory.items.get(food, 0) >= 1
+        (rtype.resource_type, rtype.food_energy)
+        for rtype in world.resource_types.values()
+        if rtype.food_energy and inventory.items.get(rtype.resource_type, 0) >= 1
     ]
     if not available:
         return False

@@ -12,6 +12,7 @@ from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
 from src.owo.core.harvest import perform_harvest
 from src.owo.core.planting import perform_plant
+from src.owo.core.resource_types import load_resource_types
 from src.owo.core.serialization import entity_from_dict
 from src.owo.core.systems import SystemManager
 from src.owo.core.terrain import Terrain, carve_lake_with_island, world_to_tile
@@ -21,7 +22,10 @@ from src.owo.core.worldgen import ensure_chunks_loaded
 
 
 class SimulationEngine:
-    def __init__(self, config_path: str, content_dir: str, recipes_dir: Optional[str] = None):
+    def __init__(
+        self, config_path: str, content_dir: str,
+        recipes_dir: Optional[str] = None, resource_types_dir: Optional[str] = None,
+    ):
         registry.discover_and_import("src.owo.components")
         registry.discover_and_import("src.owo.systems")
 
@@ -29,6 +33,7 @@ class SimulationEngine:
 
         self.world = World()
         self.world.current_season = self.config["world"]["seasons"][0]
+        self.world.resource_types = load_resource_types(resource_types_dir) if resource_types_dir else {}
         self._setup_terrain()
 
         self.events = EventBus()
