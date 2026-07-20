@@ -8,10 +8,13 @@ Client -> Server:
   {"type": "save"}                                               - persist the world now
   {"type": "load"}                                               - replace the world with the last save
   {"type": "craft", "recipe": "<recipe name>"}                   - craft if materials allow it
+  {"type": "eat"}                                                - eat the best available food
+  {"type": "reload_content"}                                     - re-read recipes/resource_types from disk
 
 Server -> Client:
-  {"type": "welcome", "player_name": "<assigned name>", "config": {...}}
+  {"type": "welcome", "player_name": "<assigned name>", "config": {...}, "recipes": {...}}
   {"type": "state", "world": {...world_to_dict output...}}
+  {"type": "recipes", "recipes": {...}}                          - pushed after a reload_content
 """
 
 import json

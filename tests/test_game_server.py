@@ -262,3 +262,32 @@ def test_new_server_picks_up_a_previously_saved_world(make_server, tmp_path):
 
     srv_b = make_server(db_path=db_path)
     assert srv_b.engine.world.get_entity_by_name(name) is not None
+
+
+def test_reload_content_pushes_updated_recipes_to_connected_clients(server, tmp_path):
+    sock, file = _connect(server.port)
+    _send(sock, {"type": "join", "name": "Reloader"})
+    welcome = _recv(file)
+    assert "new_potion" not in welcome["recipes"]
+
+    new_recipes_dir = tmp_path / "recipes"
+    new_recipes_dir.mkdir()
+    (new_recipes_dir / "new_potion.json").write_text(
+        '{"name": "new_potion", "inputs": {"berries": 2}, "output_item": "new_potion"}'
+    )
+    server.engine.recipes_dir = str(new_recipes_dir)
+
+    _send(sock, {"type": "reload_content"})
+
+    # Drain messages until the pushed "recipes" update (state broadcasts
+    # keep arriving too - same pattern as other tests in this file).
+    updated = None
+    for _ in range(30):
+        msg = _recv(file)
+        if msg is not None and msg.get("type") == "recipes":
+            updated = msg
+            break
+    assert updated is not None
+    assert "new_potion" in updated["recipes"]
+
+    _close(sock, file)

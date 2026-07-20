@@ -17,6 +17,7 @@ CONTROLS_HINT = [
     "B = build menu (then press a number to craft)",
     "I = toggle inventory",
     "F5 = save    F9 = load",
+    "F6 = reload recipes/resource types from disk",
     "H = toggle this help",
     "M = toggle map",
     "ESC = quit",
@@ -87,6 +88,8 @@ def run(host: str | None, port: int, name: str) -> None:
                     client.send_save()
                 elif event.key == pygame.K_F9:
                     client.send_load()
+                elif event.key == pygame.K_F6:
+                    client.send_reload_content()
                 elif event.key == pygame.K_h:
                     show_help = not show_help
                 elif event.key == pygame.K_m:

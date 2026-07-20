@@ -82,3 +82,36 @@ def test_fresh_engines_get_different_random_worldgen_seeds():
 
     assert engine_a.world.worldgen_seed is not None
     assert engine_a.world.worldgen_seed != engine_b.world.worldgen_seed
+
+
+def test_reload_content_picks_up_a_new_recipe_and_resource_type_without_restart(tmp_path):
+    engine = build_engine()
+    assert "new_potion" not in engine.recipes
+    assert "gem_mine" not in engine.world.resource_types
+
+    # Simulate someone dropping new content files in while the server runs:
+    # point the engine's dirs at copies of the real content plus one extra
+    # file each, then reload.
+    import shutil
+
+    new_recipes_dir = tmp_path / "recipes"
+    shutil.copytree(str(RECIPES_DIR), str(new_recipes_dir))
+    (new_recipes_dir / "new_potion.json").write_text(
+        '{"name": "new_potion", "inputs": {"berries": 2}, "output_item": "new_potion"}'
+    )
+
+    new_resource_types_dir = tmp_path / "resource_types"
+    shutil.copytree(str(RESOURCE_TYPES_DIR), str(new_resource_types_dir))
+    (new_resource_types_dir / "gem_mine.json").write_text(
+        '{"name": "gem_mine", "renderable_kind": "gem_mine", "resource_type": "gem", "max_amount": 5.0}'
+    )
+
+    engine.recipes_dir = str(new_recipes_dir)
+    engine.resource_types_dir = str(new_resource_types_dir)
+    engine.reload_content()
+
+    assert "new_potion" in engine.recipes
+    assert "gem_mine" in engine.world.resource_types
+    # Content that already existed survives the reload too.
+    assert "axe" in engine.recipes
+    assert "tree" in engine.world.resource_types

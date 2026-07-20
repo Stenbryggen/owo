@@ -84,3 +84,42 @@ def test_mature_tree_never_reproduces_when_chance_is_zero():
 
     saplings = [e for e in world.entities.values() if e is not tree and e.get_component(Growth)]
     assert saplings == []
+
+
+def test_reproduction_stops_once_local_density_cap_is_reached():
+    from src.owo.systems.tree_growth import DENSITY_RADIUS, MAX_LOCAL_DENSITY
+
+    world = _make_world()
+    # Pack MAX_LOCAL_DENSITY mature trees tightly together, well within
+    # DENSITY_RADIUS of each other.
+    for i in range(MAX_LOCAL_DENSITY):
+        tree = world.create_entity(f"Tree{i}")
+        tree.add_component(Position(x=i * 10, y=0))
+        tree.add_component(Growth(stage="mature", reproduction_chance=1.0))
+        tree.add_component(Harvestable(resource_type="wood", amount=6.0, max_amount=6.0, on_depleted="remove"))
+
+    assert MAX_LOCAL_DENSITY * 10 < DENSITY_RADIUS  # sanity check on the test's own geometry
+
+    system = _make_system(world)
+    entity_count_before = len(world.entities)
+    system._on_new_day({"day": 1})
+
+    # At the cap already - guaranteed reproduction chance still shouldn't add anyone.
+    assert len(world.entities) == entity_count_before
+
+
+def test_reproduction_resumes_once_below_the_density_cap():
+    from src.owo.systems.tree_growth import MAX_LOCAL_DENSITY
+
+    world = _make_world()
+    for i in range(MAX_LOCAL_DENSITY - 1):
+        tree = world.create_entity(f"Tree{i}")
+        tree.add_component(Position(x=i * 10, y=0))
+        tree.add_component(Growth(stage="mature", reproduction_chance=1.0))
+        tree.add_component(Harvestable(resource_type="wood", amount=6.0, max_amount=6.0, on_depleted="remove"))
+
+    system = _make_system(world)
+    entity_count_before = len(world.entities)
+    system._on_new_day({"day": 1})
+
+    assert len(world.entities) > entity_count_before

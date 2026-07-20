@@ -163,7 +163,7 @@ class GameServer:
 
             send_message(sock, {
                 "type": "welcome", "player_name": name, "config": self.engine.config,
-                "recipes": {n: dataclasses.asdict(r) for n, r in self.engine.recipes.items()},
+                "recipes": self._recipes_payload(),
             })
             print(f"[server] {name} joined from {addr}")
 
@@ -192,6 +192,9 @@ class GameServer:
                 elif msg.get("type") == "eat":
                     with self._lock:
                         self.engine.perform_eat(name)
+                elif msg.get("type") == "reload_content":
+                    self._reload_content()
+                    print(f"[server] content reloaded (requested by {name})")
         except (ConnectionResetError, BrokenPipeError, OSError, json.JSONDecodeError):
             pass
         finally:
@@ -226,6 +229,20 @@ class GameServer:
     def _load(self) -> None:
         with self._lock:
             self._load_locked()
+
+    def _recipes_payload(self) -> dict:
+        return {n: dataclasses.asdict(r) for n, r in self.engine.recipes.items()}
+
+    def _reload_content(self) -> None:
+        """Re-reads content/recipes/*.json and content/resource_types/*.json
+        from disk (SimulationEngine.reload_content) and pushes the updated
+        recipe catalog to every connected client, so a new/edited recipe or
+        resource type shows up in the build menu without reconnecting - no
+        server restart needed to try out a content change."""
+        with self._lock:
+            self.engine.reload_content()
+            recipients = list(self.clients.items())
+        self._broadcast({"type": "recipes", "recipes": self._recipes_payload()}, recipients)
 
     def _disconnect(self, name: str | None) -> None:
         if name is None:

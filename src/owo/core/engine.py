@@ -32,6 +32,8 @@ class SimulationEngine:
         registry.discover_and_import("src.owo.systems")
 
         self.config = self._load_config(config_path)
+        self.recipes_dir = recipes_dir
+        self.resource_types_dir = resource_types_dir
 
         self.world = World()
         self.world.current_season = self.config["world"]["seasons"][0]
@@ -124,6 +126,23 @@ class SimulationEngine:
                 self.world, entry["x"], entry["y"], resource_type,
                 mature=entry.get("mature", True), name=entry.get("name"),
             )
+
+    def reload_content(self) -> None:
+        """Re-reads content/recipes/*.json and content/resource_types/*.json
+        from disk into fresh dicts - new or edited recipes/resource types
+        become available immediately on a running server, no restart. Only
+        the registries change: entities already spawned in the world (an
+        existing tree's amount, say) aren't retroactively touched - a
+        reload affects what gets crafted/generated from here on, not what
+        already exists. World.resource_types is replaced wholesale (same
+        object-identity caveat as World.reset_from() doesn't apply here,
+        since nothing captures a long-lived reference to the dict itself,
+        only to `world`, and reads it fresh via world.resource_types each
+        time)."""
+        if self.resource_types_dir:
+            self.world.resource_types = load_resource_types(self.resource_types_dir)
+        if self.recipes_dir:
+            self.recipes = load_recipes(self.recipes_dir)
 
     def update(self, delta_time_hours: float) -> None:
         self.system_manager.update(self.world, self.config, delta_time_hours)

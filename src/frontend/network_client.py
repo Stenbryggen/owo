@@ -47,6 +47,8 @@ class NetworkClient:
                     world = world_from_dict(msg["world"])
                     with self._lock:
                         self._world = world
+                elif msg.get("type") == "recipes":
+                    self.recipes = msg["recipes"]
         except (OSError, ValueError):
             pass
         finally:
@@ -70,6 +72,9 @@ class NetworkClient:
 
     def send_eat(self) -> None:
         self._send({"type": "eat"})
+
+    def send_reload_content(self) -> None:
+        self._send({"type": "reload_content"})
 
     def _send(self, message: dict) -> None:
         try:
