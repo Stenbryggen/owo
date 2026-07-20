@@ -1,7 +1,7 @@
 {
   "name": "ore_mine",
   "renderable_kind": "ore_mine",
-  "resource_type": "iron",
+  "resource_type": "iron_ore",
   "max_amount": 12.0,
   "regen_per_hour": 0.3,
   "required_tool": "pickaxe",

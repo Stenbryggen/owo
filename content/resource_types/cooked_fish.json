@@ -1,0 +1,10 @@
+{
+  "name": "cooked_fish",
+  "renderable_kind": "cooked_fish",
+  "resource_type": "cooked_fish",
+  "max_amount": 1.0,
+  "food_energy": 32.0,
+  "worldgen": {
+    "enabled": false
+  }
+}

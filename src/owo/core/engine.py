@@ -12,6 +12,7 @@ from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
 from src.owo.core.harvest import perform_harvest
 from src.owo.core.planting import perform_plant
+from src.owo.core.resource_spawning import spawn_resource
 from src.owo.core.resource_types import load_resource_types
 from src.owo.core.serialization import entity_from_dict
 from src.owo.core.systems import SystemManager
@@ -25,6 +26,7 @@ class SimulationEngine:
     def __init__(
         self, config_path: str, content_dir: str,
         recipes_dir: Optional[str] = None, resource_types_dir: Optional[str] = None,
+        starting_resources_path: Optional[str] = None,
     ):
         registry.discover_and_import("src.owo.components")
         registry.discover_and_import("src.owo.systems")
@@ -45,6 +47,8 @@ class SimulationEngine:
         self.system_manager = SystemManager(system_instances, self.world, self.events, self.ai_provider)
 
         self._load_content(Path(content_dir))
+        if starting_resources_path:
+            self._load_starting_resources(Path(starting_resources_path))
         self.recipes = load_recipes(recipes_dir) if recipes_dir else {}
 
     def _setup_terrain(self) -> None:
@@ -106,6 +110,20 @@ class SimulationEngine:
                 data = json.load(f)
             validate_entity_dict(data)
             entity_from_dict(data, self.world)
+
+    def _load_starting_resources(self, path: Path) -> None:
+        """Hand-placed resource nodes (the starting trees, mines, ...),
+        spawned through the exact same spawn_resource() worldgen uses -
+        their properties live only in content/resource_types/*.json, never
+        duplicated here. Just position + which resource type + a stable
+        name (so quests/tests can keep referring to e.g. "Tree1")."""
+        entries = json.loads(path.read_text())
+        for entry in entries:
+            resource_type = self.world.resource_types[entry["resource_type"]]
+            spawn_resource(
+                self.world, entry["x"], entry["y"], resource_type,
+                mature=entry.get("mature", True), name=entry.get("name"),
+            )
 
     def update(self, delta_time_hours: float) -> None:
         self.system_manager.update(self.world, self.config, delta_time_hours)

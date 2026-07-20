@@ -1,0 +1,8 @@
+{
+  "name": "cook_fish",
+  "inputs": {"fish": 1},
+  "output_item": "cooked_fish",
+  "output_count": 1,
+  "requires_nearby": "campfire",
+  "time_hours": 0.25
+}

@@ -80,3 +80,18 @@ def test_eating_publishes_food_eaten_event():
     perform_eat(world, events, "Actor")
 
     assert fired == [{"entity": "Actor", "food": "nuts", "energy_restored": 12.0}]
+
+
+def test_cooked_fish_restores_more_energy_than_raw_fish():
+    world = _make_world()
+    events = EventBus()
+    actor = world.create_entity("Actor")
+    actor.add_component(Energy(current=0.0, max_energy=100.0))
+    actor.add_component(Inventory(items={"fish": 1, "cooked_fish": 1}))
+
+    perform_eat(world, events, "Actor")
+
+    # cooked_fish (higher food_energy) is preferred over raw fish
+    assert "cooked_fish" not in actor.get_component(Inventory).items
+    assert actor.get_component(Inventory).items["fish"] == 1
+    assert actor.get_component(Energy).current > 20.0  # more than raw fish alone would give

@@ -1,0 +1,8 @@
+{
+  "name": "iron",
+  "inputs": {"iron_ore": 2},
+  "output_item": "iron",
+  "output_count": 1,
+  "requires_nearby": "campfire",
+  "time_hours": 0.5
+}

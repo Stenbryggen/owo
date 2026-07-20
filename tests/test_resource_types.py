@@ -1,11 +1,14 @@
 from pathlib import Path
 
+import pytest
+
 from src.owo.components.harvestable import Harvestable
 from src.owo.components.inventory import Inventory
 from src.owo.components.renderable import Renderable
 from src.owo.core.ecs import World
 from src.owo.core.resource_spawning import spawn_resource
 from src.owo.core.resource_types import load_resource_types
+from src.owo.core.validation import ContentValidationError
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RESOURCE_TYPES_DIR = REPO_ROOT / "content" / "resource_types"
@@ -72,3 +75,35 @@ def test_worldgen_picks_up_the_new_type_automatically(tmp_path):
 
     kinds = {e.get_component(Renderable).kind for e in world.entities.values()}
     assert "copper_mine" in kinds
+
+
+def test_missing_required_field_raises_with_filename(tmp_path):
+    (tmp_path / "broken.json").write_text('{"name": "broken", "renderable_kind": "x"}')
+
+    with pytest.raises(ContentValidationError, match="broken.json"):
+        load_resource_types(str(tmp_path))
+
+
+def test_invalid_on_depleted_value_is_rejected(tmp_path):
+    (tmp_path / "broken.json").write_text("""
+    {"name": "broken", "renderable_kind": "x", "resource_type": "x",
+     "max_amount": 1.0, "on_depleted": "explode"}
+    """)
+
+    with pytest.raises(ContentValidationError, match="on_depleted"):
+        load_resource_types(str(tmp_path))
+
+
+def test_unknown_worldgen_field_is_rejected(tmp_path):
+    (tmp_path / "broken.json").write_text("""
+    {"name": "broken", "renderable_kind": "x", "resource_type": "x",
+     "max_amount": 1.0, "worldgen": {"typo_field": true}}
+    """)
+
+    with pytest.raises(ContentValidationError, match="worldgen"):
+        load_resource_types(str(tmp_path))
+
+
+def test_ore_mine_yields_raw_iron_ore_not_finished_iron():
+    resource_types = load_resource_types(str(RESOURCE_TYPES_DIR))
+    assert resource_types["ore_mine"].resource_type == "iron_ore"

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from src.owo.components.inventory import Inventory
 from src.owo.components.motion import Motion
 from src.owo.components.position import Position
@@ -7,6 +9,7 @@ from src.owo.components.renderable import Renderable
 from src.owo.core.crafting import can_craft, load_recipes, perform_craft
 from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
+from src.owo.core.validation import ContentValidationError
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RECIPES_DIR = REPO_ROOT / "content" / "recipes"
@@ -147,3 +150,65 @@ def test_rope_recipe_uses_fiber():
 
     assert perform_craft(world, events, recipes, "Actor", "rope") is True
     assert actor.get_component(Inventory).items["rope"] == 1
+
+
+def test_recipe_missing_required_field_raises_with_filename(tmp_path):
+    (tmp_path / "broken.json").write_text('{"name": "broken", "inputs": {"wood": 1}}')
+
+    with pytest.raises(ContentValidationError, match="broken.json"):
+        load_recipes(str(tmp_path))
+
+
+def test_recipe_with_empty_inputs_is_rejected(tmp_path):
+    (tmp_path / "broken.json").write_text('{"name": "broken", "inputs": {}, "output_item": "x"}')
+
+    with pytest.raises(ContentValidationError, match="inputs"):
+        load_recipes(str(tmp_path))
+
+
+def test_recipe_with_invalid_output_type_is_rejected(tmp_path):
+    (tmp_path / "broken.json").write_text(
+        '{"name": "broken", "inputs": {"wood": 1}, "output_item": "x", "output_type": "potion"}'
+    )
+
+    with pytest.raises(ContentValidationError, match="output_type"):
+        load_recipes(str(tmp_path))
+
+
+def test_smelting_iron_ore_requires_a_nearby_campfire():
+    world = World()
+    events = EventBus()
+    actor = world.create_entity("Actor")
+    actor.add_component(Position(x=0, y=0))
+    actor.add_component(Inventory(items={"iron_ore": 2}))
+    recipes = load_recipes(str(RECIPES_DIR))
+
+    assert perform_craft(world, events, recipes, "Actor", "iron") is False
+
+    campfire = world.create_entity("Campfire")
+    campfire.add_component(Position(x=50, y=0))
+    campfire.add_component(Renderable(kind="campfire"))
+
+    assert perform_craft(world, events, recipes, "Actor", "iron") is True
+    assert actor.get_component(Inventory).items["iron"] == 1
+    assert "iron_ore" not in actor.get_component(Inventory).items
+
+
+def test_cooking_fish_requires_a_nearby_campfire_and_gives_more_energy():
+    world = World()
+    events = EventBus()
+    actor = world.create_entity("Actor")
+    actor.add_component(Position(x=0, y=0))
+    actor.add_component(Inventory(items={"fish": 1}))
+    recipes = load_recipes(str(RECIPES_DIR))
+
+    assert perform_craft(world, events, recipes, "Actor", "cook_fish") is False
+
+    campfire = world.create_entity("Campfire")
+    campfire.add_component(Position(x=30, y=0))
+    campfire.add_component(Renderable(kind="campfire"))
+
+    assert perform_craft(world, events, recipes, "Actor", "cook_fish") is True
+    inventory = actor.get_component(Inventory)
+    assert "fish" not in inventory.items
+    assert inventory.items["cooked_fish"] == 1

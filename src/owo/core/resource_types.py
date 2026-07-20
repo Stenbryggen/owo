@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Optional
 
+from src.owo.core.validation import validate_resource_type_dict
+
 
 @dataclass
 class GrowthSpec:
@@ -49,6 +51,7 @@ def load_resource_types(resource_types_dir: str) -> Dict[str, ResourceType]:
     resource_types = {}
     for path in sorted(Path(resource_types_dir).glob("*.json")):
         data = json.loads(path.read_text())
+        validate_resource_type_dict(data, path.name)
         resource_types[data["name"]] = ResourceType(
             name=data["name"],
             renderable_kind=data["renderable_kind"],

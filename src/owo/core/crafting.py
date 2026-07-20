@@ -7,6 +7,7 @@ from src.owo.components.inventory import Inventory
 from src.owo.components.position import Position
 from src.owo.core.interaction import has_nearby_structure
 from src.owo.core.resource_spawning import spawn_structure
+from src.owo.core.validation import validate_recipe_dict
 
 
 @dataclass
@@ -24,6 +25,7 @@ def load_recipes(recipes_dir: str) -> Dict[str, Recipe]:
     recipes = {}
     for path in sorted(Path(recipes_dir).glob("*.json")):
         data = json.loads(path.read_text())
+        validate_recipe_dict(data, path.name)
         recipes[data["name"]] = Recipe(
             name=data["name"],
             inputs=data["inputs"],

@@ -8,13 +8,17 @@ CONFIG_PATH = REPO_ROOT / "config" / "world.json"
 CONTENT_DIR = REPO_ROOT / "content" / "entities"
 RECIPES_DIR = REPO_ROOT / "content" / "recipes"
 RESOURCE_TYPES_DIR = REPO_ROOT / "content" / "resource_types"
+STARTING_RESOURCES_PATH = REPO_ROOT / "content" / "starting_resources.json"
 
 
 def build_default_engine() -> SimulationEngine:
     """Build the engine from the repo's default config/content. Shared by the
     CLI demo below and the graphics frontend (src/frontend/) so both start
     from the same world."""
-    return SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR), str(RECIPES_DIR), str(RESOURCE_TYPES_DIR))
+    return SimulationEngine(
+        str(CONFIG_PATH), str(CONTENT_DIR), str(RECIPES_DIR), str(RESOURCE_TYPES_DIR),
+        str(STARTING_RESOURCES_PATH),
+    )
 
 
 def main():

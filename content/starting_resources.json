@@ -1,0 +1,12 @@
+[
+  {"resource_type": "tree", "name": "Tree1", "x": 400, "y": 300},
+  {"resource_type": "tree", "name": "Tree2", "x": 1900, "y": 400},
+  {"resource_type": "tree", "name": "Tree3", "x": 600, "y": 1300},
+  {"resource_type": "tree", "name": "Tree4", "x": 2100, "y": 1250},
+  {"resource_type": "mine", "name": "Mine1", "x": 700, "y": 500},
+  {"resource_type": "mine", "name": "Mine2", "x": 1700, "y": 1100},
+  {"resource_type": "ore_mine", "name": "OreMine1", "x": 1300, "y": 700},
+  {"resource_type": "bush", "name": "Bush1", "x": 1050, "y": 650},
+  {"resource_type": "berry_bush", "name": "BerryBush1", "x": 850, "y": 650},
+  {"resource_type": "fishing_spot", "name": "FishingSpot1", "x": 560, "y": 1080}
+]

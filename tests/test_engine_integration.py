@@ -7,10 +7,16 @@ from src.owo.core.engine import SimulationEngine
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO_ROOT / "config" / "world.json"
 CONTENT_DIR = REPO_ROOT / "content" / "entities"
+RECIPES_DIR = REPO_ROOT / "content" / "recipes"
+RESOURCE_TYPES_DIR = REPO_ROOT / "content" / "resource_types"
+STARTING_RESOURCES_PATH = REPO_ROOT / "content" / "starting_resources.json"
 
 
 def build_engine() -> SimulationEngine:
-    return SimulationEngine(str(CONFIG_PATH), str(CONTENT_DIR))
+    return SimulationEngine(
+        str(CONFIG_PATH), str(CONTENT_DIR), str(RECIPES_DIR), str(RESOURCE_TYPES_DIR),
+        str(STARTING_RESOURCES_PATH),
+    )
 
 
 def get_entity(engine, name):

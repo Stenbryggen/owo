@@ -13,13 +13,17 @@ from src.owo.core.resource_types import ResourceType
 STRUCTURE_SPEED_BONUS = {"cart": 0.6}
 
 
-def spawn_resource(world, x: float, y: float, resource_type: ResourceType, mature: bool = True):
+def spawn_resource(world, x: float, y: float, resource_type: ResourceType, mature: bool = True, name: str = None):
     """Builds one harvestable entity from a ResourceType (see
     core/resource_types.py) - the one generic constructor every world-
     generated or content-placed resource (tree, mine, bush, ...) goes
     through, so a brand new resource type never needs a new Python
-    function, only a new content/resource_types/*.json file."""
-    entity = world.create_entity(f"{resource_type.name.title().replace('_', '')}_{uuid.uuid4().hex[:8]}")
+    function, only a new content/resource_types/*.json file. `name`
+    overrides the auto-generated one - used for hand-placed starting
+    resources that need a stable, referenceable name (e.g. "Tree1")."""
+    entity = world.create_entity(
+        name or f"{resource_type.name.title().replace('_', '')}_{uuid.uuid4().hex[:8]}"
+    )
     entity.add_component(Position(x=x, y=y))
 
     growth = resource_type.growth

@@ -19,6 +19,7 @@ CONFIG_PATH = REPO_ROOT / "config" / "world.json"
 CONTENT_DIR = REPO_ROOT / "content" / "entities"
 RECIPES_DIR = REPO_ROOT / "content" / "recipes"
 RESOURCE_TYPES_DIR = REPO_ROOT / "content" / "resource_types"
+STARTING_RESOURCES_PATH = REPO_ROOT / "content" / "starting_resources.json"
 PLAYER_TEMPLATE = CONTENT_DIR / "player.json"
 DEFAULT_DB_PATH = REPO_ROOT / "src" / "data" / "saves" / "world.db"
 
@@ -61,7 +62,8 @@ class GameServer:
         self.autosave_interval_seconds = autosave_interval_seconds
 
         self.engine = SimulationEngine(
-            str(CONFIG_PATH), str(CONTENT_DIR), str(RECIPES_DIR), str(RESOURCE_TYPES_DIR)
+            str(CONFIG_PATH), str(CONTENT_DIR), str(RECIPES_DIR), str(RESOURCE_TYPES_DIR),
+            str(STARTING_RESOURCES_PATH),
         )
         loaded_world = load_world(self.db_path)
         if loaded_world is not None:
