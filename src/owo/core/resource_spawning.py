@@ -18,6 +18,10 @@ ORE_MINE_MAX_IRON = 12.0
 ORE_MINE_REGEN_PER_HOUR = 0.3
 BUSH_MAX_FIBER = 3.0
 BUSH_REGEN_PER_HOUR = 1.0
+BERRY_BUSH_MAX_BERRIES = 4.0
+BERRY_BUSH_REGEN_PER_HOUR = 1.0
+FISHING_SPOT_MAX_FISH = 8.0
+FISHING_SPOT_REGEN_PER_HOUR = 0.6
 
 
 def spawn_tree(world, x: float, y: float, mature: bool = True):
@@ -84,6 +88,38 @@ def spawn_bush(world, x: float, y: float):
         on_depleted="regen",
         depleted_kind="empty_bush",
         full_kind="bush",
+    ))
+    return entity
+
+
+def spawn_berry_bush(world, x: float, y: float):
+    entity = world.create_entity(f"BerryBush_{uuid.uuid4().hex[:8]}")
+    entity.add_component(Position(x=x, y=y))
+    entity.add_component(Renderable(kind="berry_bush"))
+    entity.add_component(Harvestable(
+        resource_type="berries",
+        amount=BERRY_BUSH_MAX_BERRIES,
+        max_amount=BERRY_BUSH_MAX_BERRIES,
+        regen_per_hour=BERRY_BUSH_REGEN_PER_HOUR,
+        on_depleted="regen",
+        depleted_kind="empty_bush",
+        full_kind="berry_bush",
+    ))
+    return entity
+
+
+def spawn_fishing_spot(world, x: float, y: float):
+    entity = world.create_entity(f"FishingSpot_{uuid.uuid4().hex[:8]}")
+    entity.add_component(Position(x=x, y=y))
+    entity.add_component(Renderable(kind="fishing_spot"))
+    entity.add_component(Harvestable(
+        resource_type="fish",
+        amount=FISHING_SPOT_MAX_FISH,
+        max_amount=FISHING_SPOT_MAX_FISH,
+        regen_per_hour=FISHING_SPOT_REGEN_PER_HOUR,
+        on_depleted="regen",
+        depleted_kind="empty_bush",
+        full_kind="fishing_spot",
     ))
     return entity
 

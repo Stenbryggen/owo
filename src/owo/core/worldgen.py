@@ -2,16 +2,25 @@ import hashlib
 import random
 from typing import Tuple
 
-from src.owo.core.resource_spawning import spawn_bush, spawn_mine, spawn_ore_mine, spawn_tree
+from src.owo.core.resource_spawning import (
+    spawn_berry_bush,
+    spawn_bush,
+    spawn_fishing_spot,
+    spawn_mine,
+    spawn_ore_mine,
+    spawn_tree,
+)
 from src.owo.core.terrain import TILE_SIZE, carve_lake_with_island, world_to_tile
 
 CHUNK_SIZE = 16  # tiles per chunk side
 
 LAKE_CHANCE = 0.25
+FISHING_SPOT_CHANCE = 0.5  # conditional on this chunk having a lake
 TREE_COUNT_RANGE = (2, 6)
 MINE_CHANCE = 0.5
 ORE_MINE_CHANCE = 0.15
 BUSH_COUNT_RANGE = (0, 3)
+BERRY_BUSH_COUNT_RANGE = (0, 2)
 
 # Sea: a much bigger, contiguous body of water spanning a whole region of
 # chunks, distinct from the small in-chunk lakes above. Regions are a
@@ -62,7 +71,16 @@ def generate_chunk(world, chunk_x: int, chunk_y: int, base_seed: int = 0, chunk_
     if rng.random() < LAKE_CHANCE:
         lake_col = origin_col + rng.randint(3, chunk_size - 4)
         lake_row = origin_row + rng.randint(3, chunk_size - 4)
-        carve_lake_with_island(world.terrain, lake_col, lake_row, rng.randint(2, 3), 1)
+        lake_radius = rng.randint(2, 3)
+        carve_lake_with_island(world.terrain, lake_col, lake_row, lake_radius, 1)
+
+        if rng.random() < FISHING_SPOT_CHANCE:
+            shore_col = lake_col + lake_radius + 1
+            shore_row = lake_row
+            if world.terrain.get(shore_col, shore_row) == world.terrain.default:
+                spawn_fishing_spot(
+                    world, shore_col * TILE_SIZE + TILE_SIZE // 2, shore_row * TILE_SIZE + TILE_SIZE // 2
+                )
 
     for _ in range(rng.randint(*TREE_COUNT_RANGE)):
         col = origin_col + rng.randint(0, chunk_size - 1)
@@ -89,6 +107,13 @@ def generate_chunk(world, chunk_x: int, chunk_y: int, base_seed: int = 0, chunk_
         if world.terrain.get(col, row) != world.terrain.default:
             continue
         spawn_bush(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
+
+    for _ in range(rng.randint(*BERRY_BUSH_COUNT_RANGE)):
+        col = origin_col + rng.randint(0, chunk_size - 1)
+        row = origin_row + rng.randint(0, chunk_size - 1)
+        if world.terrain.get(col, row) != world.terrain.default:
+            continue
+        spawn_berry_bush(world, col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2)
 
 
 def ensure_chunks_loaded(

@@ -12,6 +12,7 @@ NO_TOOL_PENALTY = 0.25  # harvestable, just much slower without the right tool -
 # Realistic bootstrapping: you can gather a little wood by hand to craft a
 # first axe, rather than being hard-blocked with nothing in your inventory.
 SEED_DROP_CHANCE = 0.4
+NUT_DROP_CHANCE = 0.3
 
 
 def _has_tool(inventory: Inventory, tool_name: str) -> bool:
@@ -72,6 +73,9 @@ def _deplete(world, events, resource_entity, harvestable: Harvestable, growth, i
         if growth is not None and random.random() < SEED_DROP_CHANCE:
             inventory.items["seed"] = inventory.items.get("seed", 0.0) + 1
             events.publish("seed_dropped", {"resource": resource_entity.name})
+        if growth is not None and random.random() < NUT_DROP_CHANCE:
+            inventory.items["nuts"] = inventory.items.get("nuts", 0.0) + 1
+            events.publish("nuts_dropped", {"resource": resource_entity.name})
         world.entities.pop(resource_entity.id, None)
         events.publish("resource_removed", {"resource": resource_entity.name})
     elif harvestable.on_depleted == "regen":

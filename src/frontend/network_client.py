@@ -68,6 +68,9 @@ class NetworkClient:
     def send_craft(self, recipe_name: str) -> None:
         self._send({"type": "craft", "recipe": recipe_name})
 
+    def send_eat(self) -> None:
+        self._send({"type": "eat"})
+
     def _send(self, message: dict) -> None:
         try:
             send_message(self.sock, message)

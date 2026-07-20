@@ -92,6 +92,10 @@ class GameServer:
             "item_crafted",
             lambda p: print(f"[server] {p['entity']} crafted {p['count']}x {p['item']}"),
         )
+        self.engine.events.subscribe(
+            "food_eaten",
+            lambda p: print(f"[server] {p['entity']} ate {p['food']} (+{p['energy_restored']:g} energy)"),
+        )
 
     def start(self) -> None:
         server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -180,6 +184,9 @@ class GameServer:
                 elif msg.get("type") == "craft":
                     with self._lock:
                         self.engine.perform_craft(name, msg.get("recipe", ""))
+                elif msg.get("type") == "eat":
+                    with self._lock:
+                        self.engine.perform_eat(name)
         except (ConnectionResetError, BrokenPipeError, OSError, json.JSONDecodeError):
             pass
         finally:

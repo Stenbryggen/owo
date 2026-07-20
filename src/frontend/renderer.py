@@ -237,6 +237,21 @@ def _draw_empty_bush(surface, font, x, y, entity):
     pygame.draw.circle(surface, (110, 100, 70), (x, y - 4), 12, width=2)
 
 
+def _draw_berry_bush(surface, font, x, y, entity):
+    pygame.draw.circle(surface, (60, 130, 50), (x - 10, y - 6), 14)
+    pygame.draw.circle(surface, (70, 145, 55), (x + 10, y - 6), 16)
+    pygame.draw.circle(surface, (40, 100, 35), (x, y - 4), 18, width=2)
+    for dx, dy in ((-8, -8), (6, -10), (0, 2), (10, -2)):
+        pygame.draw.circle(surface, (190, 40, 60), (x + dx, y + dy), 3)
+
+
+def _draw_fishing_spot(surface, font, x, y, entity):
+    pygame.draw.ellipse(surface, (70, 140, 200), (x - 30, y - 12, 60, 24))
+    pygame.draw.ellipse(surface, (40, 100, 160), (x - 30, y - 12, 60, 24), width=2)
+    label = font.render(entity.name, True, (15, 15, 15))
+    surface.blit(label, label.get_rect(center=(x, y - 24)))
+
+
 def _draw_workbench(surface, font, x, y, entity):
     pygame.draw.rect(surface, (150, 110, 65), (x - 28, y - 10, 56, 20))
     pygame.draw.rect(surface, (90, 65, 35), (x - 28, y - 10, 56, 20), width=2)
@@ -309,6 +324,8 @@ _PROP_DRAWERS = {
     "ore_mine": _draw_ore_mine,
     "bush": _draw_bush,
     "empty_bush": _draw_empty_bush,
+    "berry_bush": _draw_berry_bush,
+    "fishing_spot": _draw_fishing_spot,
     "quest_board": _draw_quest_board,
     "chest": _draw_chest,
     "quest_marker": _draw_quest_marker,

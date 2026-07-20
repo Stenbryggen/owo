@@ -7,6 +7,7 @@ from typing import Optional
 from src.owo.core import registry
 from src.owo.core.ai_provider import get_provider
 from src.owo.core.crafting import load_recipes, perform_craft
+from src.owo.core.eating import perform_eat
 from src.owo.core.ecs import World
 from src.owo.core.events import EventBus
 from src.owo.core.harvest import perform_harvest
@@ -115,6 +116,9 @@ class SimulationEngine:
 
     def perform_craft(self, actor_name: str, recipe_name: str) -> bool:
         return perform_craft(self.world, self.events, self.recipes, actor_name, recipe_name)
+
+    def perform_eat(self, actor_name: str) -> bool:
+        return perform_eat(self.world, self.events, actor_name)
 
     @property
     def current_time(self) -> float:

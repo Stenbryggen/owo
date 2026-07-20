@@ -1,0 +1,19 @@
+{
+  "name": "BerryBush1",
+  "components": [
+    {"type": "position", "params": {"x": 850, "y": 650}},
+    {"type": "renderable", "params": {"kind": "berry_bush"}},
+    {
+      "type": "harvestable",
+      "params": {
+        "resource_type": "berries",
+        "amount": 4.0,
+        "max_amount": 4.0,
+        "regen_per_hour": 1.0,
+        "on_depleted": "regen",
+        "depleted_kind": "empty_bush",
+        "full_kind": "berry_bush"
+      }
+    }
+  ]
+}

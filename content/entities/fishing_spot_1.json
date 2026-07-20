@@ -1,0 +1,19 @@
+{
+  "name": "FishingSpot1",
+  "components": [
+    {"type": "position", "params": {"x": 560, "y": 1080}},
+    {"type": "renderable", "params": {"kind": "fishing_spot"}},
+    {
+      "type": "harvestable",
+      "params": {
+        "resource_type": "fish",
+        "amount": 8.0,
+        "max_amount": 8.0,
+        "regen_per_hour": 0.6,
+        "on_depleted": "regen",
+        "depleted_kind": "empty_bush",
+        "full_kind": "fishing_spot"
+      }
+    }
+  ]
+}

@@ -13,6 +13,7 @@ CONTROLS_HINT = [
     "E = work quest / harvest",
     "F = fill water with dirt",
     "P = plant a seed",
+    "G = eat (best available food)",
     "B = build menu (then press a number to craft)",
     "I = toggle inventory",
     "F5 = save    F9 = load",
@@ -94,6 +95,8 @@ def run(host: str | None, port: int, name: str) -> None:
                     show_inventory = not show_inventory
                 elif event.key == pygame.K_b:
                     show_build_menu = not show_build_menu
+                elif event.key == pygame.K_g:
+                    client.send_eat()
                 elif show_build_menu and event.key in _NUMBER_KEYS:
                     index = _NUMBER_KEYS.index(event.key)
                     recipe_names = sorted(client.recipes.keys())

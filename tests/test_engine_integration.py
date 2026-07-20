@@ -23,8 +23,8 @@ def test_loads_all_content_entities():
     assert names == {
         "Player1", "Birk", "Campfire",
         "Tree1", "Tree2", "Tree3", "Tree4",
-        "Mine1", "Mine2", "OreMine1", "Bush1", "QuestBoard", "Chest",
-        "QuestGatherWood", "QuestClearRocks", "Cart",
+        "Mine1", "Mine2", "OreMine1", "Bush1", "BerryBush1", "FishingSpot1",
+        "QuestBoard", "Chest", "QuestGatherWood", "QuestClearRocks", "Cart",
     }
 
 
